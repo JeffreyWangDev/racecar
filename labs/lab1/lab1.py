@@ -64,24 +64,24 @@ def update():
     is pressed
     """
     # TODO (warmup): Implement acceleration and steering
-
+    speed=0.2
     if rc.controller.was_pressed(rc.controller.Button.A):
-        queue.append([6.4,[1,1]])
+        queue.append([6.4,[speed,1]])
     if rc.controller.was_pressed(rc.controller.Button.B):
         print("Driving in a square...")
-        queue.append([1,[1,0]])
-        queue.append([1,[1,1]])
-        queue.append([1,[1,0]])
-        queue.append([1,[1,1]])
-        queue.append([1,[1,0]])
-        queue.append([1,[1,1]])
-        queue.append([1,[1,0]])
-        queue.append([1,[1,1]])
+        queue.append([1,[speed,0]])
+        queue.append([1,[speed,1]])
+        queue.append([1,[speed,0]])
+        queue.append([1,[speed,1]])
+        queue.append([1,[speed,0]])
+        queue.append([1,[speed,1]])
+        queue.append([1,[speed,0]])
+        queue.append([1,[speed,1]])
 
     if rc.controller.was_pressed(rc.controller.Button.X):
         print("Figure 8")
-        queue.append([6.4,[1,1]])
-        queue.append([6.4,[1,-1]])
+        queue.append([6.4,[speed,1]])
+        queue.append([6.4,[speed,-1]])
         # TODO (main challenge): Drive in a square when the B button is pressed
 
     if queue:
