@@ -58,7 +58,7 @@ def start():
     )
 
 def update():
-    global isDriving, isCircle, isSquare, isEight, counter
+    global queue
     """
     After start() is run, this function is run every frame until the back button
     is pressed
@@ -82,6 +82,7 @@ def update():
     if queue:
         if queue[0][0]<=0:
             queue.pop(0)
+            rc.drive.stop()
         else:
             queue[0][0]-=rc.get_delta_time()
             rc.drive.set_speed_angle(queue[0][1][0],queue[0][1][1])
