@@ -65,15 +65,19 @@ def update():
     """
     # TODO (warmup): Implement acceleration and steering
 
+    
+    if rc.controller.was_pressed(rc.controller.Button.B):
+        print("Driving in a square...")
+        queue.append([10,[1,1]])
 
-    # TODO (main challenge): Drive in a square when the B button is pressed
+        # TODO (main challenge): Drive in a square when the B button is pressed
 
     if queue:
         if queue[0][0]<=0:
             queue.pop(0)
         else:
             queue[0][0]-=rc.get_delta_time()
-            rc.drive.set_speed_angle(queue[0][0][1][0],queue[0][0][1][1])
+            rc.drive.set_speed_angle(queue[0][1][0],queue[0][1][1])
         
     # TODO (main challenge): Drive in a figure eight when the X button is pressed
 
