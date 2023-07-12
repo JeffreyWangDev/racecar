@@ -18,6 +18,12 @@ import racecar_utils as rc_utils
 
 ########################################################################################
 # Global variables
+queue = []
+# Queue [time in seconds [speed,wheel]]
+def make_zero():
+    global queue
+    queue.clear()
+    rc.drive.stop()
 ########################################################################################
 
 rc = racecar_core.create_racecar()
@@ -35,7 +41,8 @@ def start():
     """
     # Begin at a full stop
     rc.drive.stop()
-
+    rc.drive.set_speed_angle(0, 0)
+    make_zero()
     # Print start message
     # TODO (main challenge): add a line explaining what the Y button does
     print(
@@ -51,19 +58,23 @@ def start():
     )
 
 def update():
+    global isDriving, isCircle, isSquare, isEight, counter
     """
     After start() is run, this function is run every frame until the back button
     is pressed
     """
     # TODO (warmup): Implement acceleration and steering
-    rc.drive.set_speed_angle(0, 0)
 
-    if rc.controller.was_pressed(rc.controller.Button.A):
-        print("Driving in a circle...")
-        # TODO (main challenge): Drive in a circle
 
     # TODO (main challenge): Drive in a square when the B button is pressed
 
+    if queue:
+        if queue[0][0]<=0:
+            queue.pop(0)
+        else:
+            queue[0][0]-=rc.get_delta_time()
+            rc.drive.set_speed_angle(queue[0][0][1][0],queue[0][0][1][1])
+        
     # TODO (main challenge): Drive in a figure eight when the X button is pressed
 
     # TODO (main challenge): Drive in a shape of your choice when the Y button
