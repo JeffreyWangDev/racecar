@@ -77,6 +77,11 @@ def update():
         queue.append([1,[1,1]])
         queue.append([1,[1,0]])
         queue.append([1,[1,1]])
+
+    if rc.controller.was_pressed(rc.controller.Button.X):
+        print("Figure 8")
+        queue.append([6.4,[1,1]])
+        queue.append([6.4,[1,-1]])
         # TODO (main challenge): Drive in a square when the B button is pressed
 
     if queue:
