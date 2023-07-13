@@ -23,7 +23,7 @@ import racecar_utils as rc_utils
 ########################################################################################
 
 rc = racecar_core.create_racecar()
-
+DRIVE   = True
 # >> Constants
 # The smallest contour we will recognize as a valid contour
 MIN_CONTOUR_AREA = 30
@@ -87,6 +87,7 @@ def clamp(value: float, vmin: float, vmax: float) -> float:
         value = vmax
     return value
 def update_contour():
+    global DRIVE
     """
     Finds contours in the current color image and uses them to update contour_center
     and contour_area
@@ -106,12 +107,23 @@ def update_contour():
         # Crop the image to the floor directly in front of the car
         image = rc_utils.crop(image, CROP_FLOOR[0], CROP_FLOOR[1])
 
-        # Find all of the blue contours
+        walll = (110,50,10)
+        wallh = (150,255,255)
+
+        contours_cone = rc_utils.find_contours(image, walll, wallh)
+        largest_contour_cone = rc_utils.get_largest_contour(contours_cone,500)
+        if largest_contour_cone is not None:
+            cone_area = rc_utils.get_contour_area(largest_contour_cone)
+            if cone_area > 600:
+                DRIVE = False        
+
+
         contours = rc_utils.find_contours(image, BLUE[0], BLUE[1])
 
         # Select the largest contour
         contour = rc_utils.get_largest_contour(contours, MIN_CONTOUR_AREA)
 
+        
         if contour is not None:
             # Calculate contour information
             contour_center = rc_utils.get_contour_center(contour)
@@ -166,10 +178,7 @@ def update():
     global angle
 
     # Search for contours in the current color image
-    try:
-        update_contour()
-    except Exception as e:
-        print(e)
+    update_contour()
 
     # Choose an angle based on contour_center
     # If we could not find a contour, keep the previous angle
@@ -180,11 +189,10 @@ def update():
         angle= clamp(pos, -1, 1)
 
     # Use the triggers to control the car's speed
-    forwardSpeed = rc.controller.get_trigger(rc.controller.Trigger.RIGHT)
-    backSpeed = rc.controller.get_trigger(rc.controller.Trigger.LEFT)
-    speed = 1
 
-    rc.drive.set_speed_angle(speed, angle)
+    speed = 1
+    if DRIVE:
+        rc.drive.set_speed_angle(speed, angle)
 
     # Print the current speed and angle when the A button is held down
     if rc.controller.is_down(rc.controller.Button.A):
