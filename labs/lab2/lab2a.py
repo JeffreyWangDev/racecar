@@ -44,8 +44,48 @@ contour_area = 0  # The area of contour
 ########################################################################################
 # Functions
 ########################################################################################
+def remap_range(
+    val: float,
+    old_min: float,
+    old_max: float,
+    new_min: float,
+    new_max: float,
+) -> float:
+    """
+    Remaps a value from one range to another range.
 
+    Args:
+        val: A number form the old range to be rescaled.
+        old_min: The inclusive 'lower' bound of the old range.
+        old_max: The inclusive 'upper' bound of the old range.
+        new_min: The inclusive 'lower' bound of the new range.
+        new_max: The inclusive 'upper' bound of the new range.
 
+    Note:
+        min need not be less than max; flipping the direction will cause the sign of
+        the mapping to flip.  val does not have to be between old_min and old_max.
+    """
+    # TODO: remap val to the new range
+    a = (val - old_min) / (old_max - old_min)
+    return a * (new_max - new_min) + new_min
+def clamp(value: float, vmin: float, vmax: float) -> float:
+    """
+    Clamps a value between a minimum and maximum value.
+
+    Args:
+        value: The input to clamp.
+        vmin: The minimum allowed value.
+        vmax: The maximum allowed value.
+
+    Returns:
+        The value saturated between vmin and vmax.
+    """
+    # TODO: Make sure that value is between min and max
+    if value < vmin:
+        value = vmin
+    elif value > vmax:
+        value = vmax
+    return value
 def update_contour():
     """
     Finds contours in the current color image and uses them to update contour_center
@@ -86,7 +126,6 @@ def update_contour():
             contour_area = 0
 
         # Display the image to the screen
-        rc.display.show_color_image(image)
 
 
 def start():
@@ -127,22 +166,23 @@ def update():
     global angle
 
     # Search for contours in the current color image
-    update_contour()
+    try:
+        update_contour()
+    except Exception as e:
+        print(e)
 
     # Choose an angle based on contour_center
     # If we could not find a contour, keep the previous angle
     if contour_center is not None:
         # Current implementation: bang-bang control (very choppy)
         # TODO (warmup): Implement a smoother way to follow the line
-        if contour_center[1] < rc.camera.get_width() / 2:
-            angle = -1
-        else:
-            angle = 1
+        pos = remap_range(contour_center[1], 0, rc.camera.get_width(), -1, 1)
+        angle= clamp(pos, -1, 1)
 
     # Use the triggers to control the car's speed
     forwardSpeed = rc.controller.get_trigger(rc.controller.Trigger.RIGHT)
     backSpeed = rc.controller.get_trigger(rc.controller.Trigger.LEFT)
-    speed = forwardSpeed - backSpeed
+    speed = 1
 
     rc.drive.set_speed_angle(speed, angle)
 
@@ -154,6 +194,7 @@ def update():
     if rc.controller.is_down(rc.controller.Button.B):
         if contour_center is None:
             print("No contour found")
+            rc.dive.stop()
         else:
             print("Center:", contour_center, "Area:", contour_area)
 

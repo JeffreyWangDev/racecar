@@ -87,13 +87,14 @@ def update():
     
     
     if rc.controller.was_pressed(rc.controller.Button.Y):
-        print("Johnson")
-        queue.append([1.35,[speed,1]])
-        #queue.append([.5,[speed,-1]])
-        queue.append([3,[speed,0]])
-        queue.append([2.3,[speed,1]])
-        queue.append([3,[speed,0]])
-        queue.append([1.35,[speed,-1]])
+        print("Triangle")
+        queue.append([0.5,[speed,0]])
+        queue.append([0.6,[speed,1]])
+        queue.append([0.5,[speed,0]])
+        queue.append([0.6,[speed,1]])
+        queue.append([0.5,[speed,0]])
+        queue.append([0.6,[speed,1]])
+
 
 
 
