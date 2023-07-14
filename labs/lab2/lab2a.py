@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(1, "../../library")
 import racecar_core
 import racecar_utils as rc_utils
-
+import math
 ########################################################################################
 # Global variables
 ########################################################################################
@@ -32,7 +32,7 @@ MIN_CONTOUR_AREA = 30
 CROP_FLOOR = ((360, 0), (rc.camera.get_height(), rc.camera.get_width()))
 
 # Colors, stored as a pair (hsv_min, hsv_max)
-BLUE = ((90, 50, 50), (120, 255, 255))  # The HSV range for the color blue
+BLUE = ((90, 50, 50), (115, 255, 255))  # The HSV range for the color blue
 # TODO (challenge 1): add HSV ranges for other colors
 
 # >> Variables
@@ -44,6 +44,8 @@ contour_area = 0  # The area of contour
 ########################################################################################
 # Functions
 ########################################################################################
+
+
 def remap_range(
     val: float,
     old_min: float,
@@ -51,23 +53,10 @@ def remap_range(
     new_min: float,
     new_max: float,
 ) -> float:
-    """
-    Remaps a value from one range to another range.
 
-    Args:
-        val: A number form the old range to be rescaled.
-        old_min: The inclusive 'lower' bound of the old range.
-        old_max: The inclusive 'upper' bound of the old range.
-        new_min: The inclusive 'lower' bound of the new range.
-        new_max: The inclusive 'upper' bound of the new range.
-
-    Note:
-        min need not be less than max; flipping the direction will cause the sign of
-        the mapping to flip.  val does not have to be between old_min and old_max.
-    """
-    # TODO: remap val to the new range
     a = (val - old_min) / (old_max - old_min)
     return a * (new_max - new_min) + new_min
+
 def clamp(value: float, vmin: float, vmax: float) -> float:
     """
     Clamps a value between a minimum and maximum value.
@@ -86,6 +75,7 @@ def clamp(value: float, vmin: float, vmax: float) -> float:
     elif value > vmax:
         value = vmax
     return value
+accumulated_error, last_error = 0.0, 0.0
 def update_contour():
     """
     Finds contours in the current color image and uses them to update contour_center
@@ -156,7 +146,32 @@ def start():
         "    B button = print contour center and area"
     )
 
+def pid_control(
+    p_gain,
+    i_gain,
+    d_gain,
+    target_val,
+    current_val,
+    accumulated_error,
+    last_error,
+    dt
+):
 
+    error = target_val - current_val
+    print("Error: ",error)
+    #change dt with time of car
+    # Update the accumulated error
+    accumulated_error += error * dt
+
+
+    delta_error = (error - last_error) / dt
+
+    p_term = p_gain * error
+    i_term = i_gain * accumulated_error
+    d_term = d_gain * delta_error
+
+    return p_term + i_term + d_term, accumulated_error, error
+tte = 0
 def update():
     """
     After start() is run, this function is run every frame until the back button
@@ -164,7 +179,7 @@ def update():
     """
     global speed
     global angle
-
+    global accumulated_error, last_error,tte
     # Search for contours in the current color image
     try:
         update_contour()
@@ -176,12 +191,15 @@ def update():
     if contour_center is not None:
         # Current implementation: bang-bang control (very choppy)
         # TODO (warmup): Implement a smoother way to follow the line
-        pos = remap_range(contour_center[1], 0, rc.camera.get_width(), -1, 1)
-        angle= clamp(pos, -1, 1)
-
-    # Use the triggers to control the car's speed
-    forwardSpeed = rc.controller.get_trigger(rc.controller.Trigger.RIGHT)
-    backSpeed = rc.controller.get_trigger(rc.controller.Trigger.LEFT)
+        # pos = remap_range(contour_center[1], 0, rc.camera.get_width(), -1, 1)
+        # angle= clamp(pos, -1, 1)
+        tte=tte+abs(320-contour_center[1])/1000
+        anglea,accumulated_error,last_error = pid_control(3, 2, 0.3, 320, contour_center[1], accumulated_error, last_error, rc.get_delta_time())
+        # print("PID: ", anglea)
+        # print("Contour Center: ", contour_center[1])
+        angle = remap_range(anglea, -640,640, 1, -1)
+        angle = clamp(angle, -1, 1)
+        # print("Angle: ",angle)
     speed = 1
 
     rc.drive.set_speed_angle(speed, angle)
@@ -194,7 +212,7 @@ def update():
     if rc.controller.is_down(rc.controller.Button.B):
         if contour_center is None:
             print("No contour found")
-            rc.dive.stop()
+            rc.drive.stop()
         else:
             print("Center:", contour_center, "Area:", contour_area)
 
@@ -205,6 +223,7 @@ def update_slow():
     than update().  By default, update_slow() is run once per second
     """
     # Print a line of ascii text denoting the contour area and x-position
+    print("Total Error: ",tte)
     if rc.camera.get_color_image() is None:
         # If no image is found, print all X's and don't display an image
         print("X" * 10 + " (No image) " + "X" * 10)
