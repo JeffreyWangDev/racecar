@@ -67,7 +67,7 @@ def update():
     center_distance = rc_utils.get_depth_image_center_distance(depth_image)
 
     # Define the desired distance from the cone (in meters)
-    desired_distance = 0.127  # Approximately 5 inches in meters
+    desired_distance = 0.0127  # Approximately 5 inches in meters
 
     # Calculate the difference between the desired distance and the actual distance
     distance_error = center_distance - desired_distance
