@@ -53,13 +53,6 @@ class states(Enum):
     parking_cone = 2
     stop = 0
 
-class state():
-    def __int__(self):
-        self.state = 0
-    def get_state(self):
-        return self.state
-    def set_state(self,num):
-        self.state = num
 
 
 def remap_range(
@@ -133,7 +126,7 @@ def find_contours(mask: NDArray) -> List[NDArray]:
     Returns a list of contours around all objects in a mask.
     """
     return cv.findContours(mask, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)[0]
-def get_largest_contour(contours: List[NDArray], min_area: int = 30) -> Optional[NDArray]:
+def get_largest_contour(contours: List[NDArray], min_area: int = 10) -> Optional[NDArray]:
     """
     Finds the largest contour with size greater than min_area.
 
@@ -204,33 +197,38 @@ def update_contour():
 
         # Crop the image to the floor directly in front of the car
         image = image[150:len(image)]
-
-        hsv = [
-            [(87, 50, 150),(100, 200, 255)],
-            [(0, 50, 50), (10, 255, 255)],
-            [(40, 50, 50), (70, 255, 255)],
-            [(140,95,95), (155,240,240)]
-        ]
         colors = {
-            "blue":[(87, 50, 150),(100, 200, 255)],
+            "blue":[(90, 50, 50),(115, 200, 255)],
             "red":[(0, 50, 50), (10, 255, 255)],
             "green":[(40, 50, 50), (70, 255, 255)],
             "cone":[(140,95,95), (155,240,240)]
         }
+
+        hsv = [
+            colors["green"],
+            colors["red"],
+            colors["blue"],
+            colors["cone"]
+        ]
 
         image_copy = np.copy(image)
 
 
         cone_mask = get_mask(image_copy, hsv[3][0], hsv[3][0])
         cone_contours = find_contours(cone_mask)
-        if cone_contours is not None:
+        if len(cone_contours) >0:
+            
             largest_contour = get_largest_contour(cone_contours)
-            cone_area = cv.contourArea(largest_contour)
-            current_state.set_state(states.parking_cone)
+            contour_center = get_contour_center(largest_contour)
+            try:
+                cone_area = cv.contourArea(largest_contour)
+                current_state = states.parking_cone
+            except:
+                pass
             return
         first_mask = get_mask(image, hsv[0][0], hsv[0][1])
         first_contours = find_contours(first_mask)
-        if first_contours is not None:
+        if len(first_contours)>0:
             largest_contour = get_largest_contour(first_contours)
             contour_center = get_contour_center(largest_contour)
             try:
@@ -238,31 +236,33 @@ def update_contour():
             except:
                 pass
             return
-        second_mask = get_mask(image, hsv[1][0], hsv[1][1])
-        second_contours = find_contours(second_mask)
-        if second_contours is not None:
-            largest_contour = get_largest_contour(first_contours)
-            contour_center = get_contour_center(largest_contour)
-            try:
-                contour_area = cv.contourArea(largest_contour)
-            except:
-                pass
-            return
-        final_mask = get_mask(image, hsv[2][0], hsv[2][1])
-        final_contours = find_contours(final_mask)
-        if final_contours is not None:
-            largest_contour = get_largest_contour(first_contours)
-            contour_center = get_contour_center(largest_contour)
-            try:
-                contour_area = cv.contourArea(largest_contour)
-            except:
-                pass
-            return
-
         else:
-            angle = 0
-            contour_center = None
-            contour_area = 0
+            second_mask = get_mask(image, hsv[1][0], hsv[1][1])
+            second_contours = find_contours(second_mask)
+            if len(second_contours)>0:
+                largest_contour = get_largest_contour(second_contours)
+                contour_center = get_contour_center(largest_contour)
+                try:
+                    contour_area = cv.contourArea(largest_contour)
+                except:
+                    pass
+                return
+            else:
+                final_mask = get_mask(image, hsv[2][0], hsv[2][1])
+                final_contours = find_contours(final_mask)
+                if len(final_contours)>0:
+                    largest_contour = get_largest_contour(final_contours)
+                    contour_center = get_contour_center(largest_contour)
+                    try:
+                        contour_area = cv.contourArea(largest_contour)
+                    except:
+                        pass
+                    return
+                else:
+                    contour_center = None
+                    contour_area = 0
+
+
 
         # Display the image to the screen
 def pid_control(
@@ -300,7 +300,7 @@ accumulated_error = 0.0
 last_error = 0.0
 dt = 1.0
 
-current_state = state()
+current_state = 1
 
 def start():
     """
@@ -310,7 +310,7 @@ def start():
     global angle
 
     # Initialize variables
-    speed = 0.15
+    speed = 1
     angle = 0
 
     # Set initial driving speed and angle
@@ -329,9 +329,9 @@ def start():
         "    A button = print current speed and angle\n"
         "    B button = print contour center and area"
     )
-PID_P = 0.38
-PID_I = 0.2
-PID_D = 0.16000000000000003
+PID_P = 3
+PID_I = 1.5
+PID_D = 0.7
 def update():
     global PID_P,PID_I,PID_D
     """
@@ -340,26 +340,27 @@ def update():
     """
     global speed
     global angle
-    global current_val,accumulated_error,last_error,dt
+    global current_val,accumulated_error,last_error,dt,current_state
     dt=rc.get_delta_time()
     update_contour()
-    if state.get_state()==states.following_line:
+    if current_state==1:
         if contour_center is not None:
             # Current implementation: bang-bang control (very choppy)
             # TODO (warmup): Implement a smoother way to follow the line
     #         pos = remap_range(contour_center[1], 0, rc.camera.get_width(), -1, 1)
     #         angle= clamp(pos, -1, 1)+0.5
-            anglea,accumulated_error,last_error = pid_control(PID_P, PID_I, PID_D, 160, contour_center[1], accumulated_error, last_error, rc.get_delta_time())
-            angle = remap_range(anglea, -320,320, 1, -1)
+            
+            anglea,accumulated_error,last_error = pid_control(PID_P, PID_I, PID_D, 320, contour_center[1], accumulated_error, last_error, dt)
+            angle = remap_range(anglea, -640,640, 1, -1)
             angle= clamp(angle, -1, 1)
         rc.drive.set_speed_angle(speed, angle)
     
-    if state.get_state() == states.parking_cone:
-        if cone_area < 1000:
+    if current_state == states.parking_cone:
+        if cone_area < 500:
             rc.drive.set_speed_angle(speed, 0)
         else:
             rc.drive.stop()
-            current_state.set_state(states.stop)
+            current_state=states.stop
     
     if rc.controller.was_pressed(rc.controller.Button.X):
         speed+=0.01
