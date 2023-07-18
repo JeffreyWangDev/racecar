@@ -67,23 +67,60 @@ def update():
 
     # Calculate angle from left joystick
     angle = rc.controller.get_joystick(rc.controller.Joystick.LEFT)[0]
-
+    print(f"Speed: {speed:.2f} m/s")
     # TODO (main challenge): Revisit the driving in shapes challenge from lab 1.
     # Using your IMU data, create a more robust version of driving in shapes.
 
     # When the A button is pressed, add instructions to drive in a circle
     if rc.controller.was_pressed(rc.controller.Button.A):
         print("Driving in a circle...")
-        # TODO (main challenge): Drive in a circle
+        # Implement driving in a circle
+        circle_radius = 1.0  # Adjust the radius according to your robot's capabilities
+        circle_speed = 0.5  # Adjust the speed for the circle
+        circle_angle = 1.0  # Adjust the steering angle for the circle
+        rc.drive.set_speed_angle(circle_speed, circle_angle)
+        rc.drive.set_circle(circle_radius)
 
-    # TODO (main challenge): Drive in a square when the B button is pressed
+    # When the B button is pressed, add instructions to drive in a square
+    if rc.controller.was_pressed(rc.controller.Button.B):
+        print("Driving in a square...")
+        # Implement driving in a square
+        square_speed = 0.5  # Adjust the speed for the square
+        square_angle = 1.0  # Adjust the steering angle for the square
+        square_side_duration = 2.0  # Adjust the duration for each side of the square
+        square_sides = 4  # Adjust the number of sides for the square
 
-    # TODO (main challenge): Drive in a figure eight when the X button is pressed
+        for _ in range(square_sides):
+            rc.drive.set_speed_angle(square_speed, square_angle)
+            rc.drive.set_heading(90.0)  # Adjust the heading for each side of the square
+            rc.drive.run(square_side_duration)
 
-    # TODO (main challenge): Drive in a shape of your choice when the Y button
-    # is pressed
+    # When the X button is pressed, add instructions to drive in a figure eight
+    if rc.controller.was_pressed(rc.controller.Button.X):
+        print("Driving in a figure eight...")
+        # Implement driving in a figure eight
+        figure_radius = 1.0  # Adjust the radius for the circles in the figure eight
+        figure_speed = 0.5  # Adjust the speed for the figure eight
+        figure_angle = 1.0  # Adjust the steering angle for the figure eight
+
+        # First circle
+        rc.drive.set_speed_angle(figure_speed, figure_angle)
+        rc.drive.set_circle(figure_radius)
+        rc.drive.run(4.0)  # Adjust the duration for the first circle
+
+        # Second circle
+        rc.drive.set_speed_angle(figure_speed, -figure_angle)
+        rc.drive.set_circle(-figure_radius)
+        rc.drive.run(4.0)  # Adjust the duration for the second circle
+
+    # When the Y button is pressed, add instructions to drive in a shape of your choice
+    if rc.controller.was_pressed(rc.controller.Button.Y):
+        print("Driving in a custom shape...")
+        # Implement driving in a custom shape
+        # Add your custom shape movement instructions here
 
     rc.drive.set_speed_angle(speed, angle)
+
 
 
 ################################################################################
