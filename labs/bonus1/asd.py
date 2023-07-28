@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 import ipywidgets as widgets
 from typing import Any, Tuple, List, Optional
 from enum import Enum
-from utils import *
 from abc import ABC, abstractmethod
 
 ########################################################################################
@@ -31,23 +30,26 @@ from abc import ABC, abstractmethod
 
 rc = racecar_core.create_racecar()
 
-class Color(ABC):
-    @abstractmethod
-    def __init__(self,lower:tuple,upper:tuple) -> None:
-        self.lower = lower
-        self.upper = upper
-    @abstractmethod
-    def lower(self):
-        return self.lower
-    @abstractmethod
-    def upper(self):
-        return self.upper
+    
 class Colors:
     class Cones:
-        red = [(),()]
-        blue = [(),()]
+        class Blue:
+            lower_value = (0,0,0)
+            upper_value = (0,0,0)
     class Lines:
-        red = [(),()]
+        class Red: 
+            lower_value = (0,0,0)
+            upper_value = (0,0,0)
+        class Blue:
+            lower_value = (0,0,0)
+            upper_value = (0,0,0)
+        class Green:
+            lower_value = (0,0,0)
+            upper_value = (0,0,0)
+        class Yellow:
+            lower_value = (0,0,0)
+            upper_value = (0,0,0)
+
 
 class Pid:
     class Speed:
@@ -104,7 +106,8 @@ class Camera:
             if color:
                 return rc_utils.get_largest_contour(rc_utils.find_contours(image_copy, Colors.Lines.red, color[1]))
             return {
-                "yellow": rc_utils.find_contours(image, YELLOW[0], YELLOW[1]),
-                "green": rc_utils.find_contours(image, GREEN[0], GREEN[1]),
-                "orange": rc_utils.find_contours(image, ORANGE[0], ORANGE[1])
+                "blue": rc_utils.find_contours(image, Colors.Lines.Blue.lower_value, Colors.Lines.Blue.upper_value),
+                "green": rc_utils.find_contours(image, Colors.Lines.Green.lower_value, Colors.Lines.Green.upper_value),
+                "red": rc_utils.find_contours(image, ORANGE[0], ORANGE[1]),
+                "yellow": rc_utils.find_contours(image, ORANGE[0], ORANGE[1]),
             }
