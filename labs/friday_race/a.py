@@ -21,16 +21,16 @@ import racecar_utils as rc_utils
 
 ########################################################################################
 # Global variables
-# ########################################################################################
-# import rclpy as ros2
-# from rclpy.qos import (
-#     QoSDurabilityPolicy,
-#     QoSHistoryPolicy,
-#     QoSReliabilityPolicy,
-#     QoSProfile,
-# )
-# from sensor_msgs.msg import Image
-# from cv_bridge import CvBridge, CvBridgeError
+########################################################################################
+import rclpy as ros2
+from rclpy.qos import (
+    QoSDurabilityPolicy,
+    QoSHistoryPolicy,
+    QoSReliabilityPolicy,
+    QoSProfile,
+)
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
 import cv2 as cv
 import numpy as np
 from nptyping import NDArray
@@ -51,28 +51,26 @@ angle = 0.0  # The current angle of the car's wheels
 contour_center = None  # The (pixel row, pixel column) of contour
 contour_area = 0  # The area of contour
 image = None
+### speed code
 speed_current_val = 0.0
 speed_accumulated_error = 0.0
 speed_last_error = 0.0
 dt = 1.0
 speed_speed = 0.2
-speed_PID_P = 0.4
-speed_PID_I = 0.1
-speed_PID_D = 0.08
+speed_PID_P = 0.36
+speed_PID_I = 0.18
+speed_PID_D = 0.03
 speed_V0 = 0
 speed_V1 = 0
 speed_set_speed = 0
 speed_dv = 0
-speed_a_list=[0,0,0,0,0]
-speed_average_s = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+speed_a_list=[0,0,0,0,0,0,0,0]
+speed_average_s = [0,0,0,0,0,0,0,0,0]
+### speed code
 cone_area = 0
 largest_contour = None
 cone_distance = 1000
-def average(lista):
-    average_v = 0
-    for i in lista:
-        average_v+=i
-    return average_v/len(lista)
+
 def update_contour(cone = False):
     global DRIVE
     global image
@@ -100,29 +98,27 @@ def update_contour(cone = False):
 
         # Crop the image to the floor directly in front of the car
         colors = {
-            "green":[],
-            "red":[],
-            "yellow": [],
-            "blue":[]
+            "purple":[(102, 3, 200),(131, 33, 230)],
+            "red":[(170, 50, 170), (180, 255, 255)],
+            "yellow": [(17, 70, 200), (37, 160, 255)]
 
 
         }
         hsv = [
-            colors[""]
+            colors["red"],
+            colors["yellow"],
+            colors["purple"]
         ]
 
         image_copy = np.copy(image)
-        cone_mask = get_mask(image_copy, hsv[2][0], hsv[2][0])
+        cone_mask = get_mask(image_copy, hsv[-1][0], hsv[-1][0])
         cone_contours = find_contours(cone_mask)
         if len(cone_contours) >0:
             largest_contour = get_largest_contour(cone_contours)
             contour_center = get_contour_center(largest_contour)
-            try:
-                current_state = states.parking_cone
-                return
-            except Exception as e:
-                print(e)
-                pass
+            current_state = states.parking_cone
+            return
+
         if not cone:
             image = image[100:len(image)]
             first_mask = get_mask(image, hsv[0][0], hsv[0][1])
@@ -146,9 +142,28 @@ def update_contour(cone = False):
                     return
                 except:
                     pass
-            else:
-                contour_center = None
-                contour_area = 0
+            second_mask = get_mask(image, hsv[2][0], hsv[2][1])
+            second_contours = find_contours(second_mask)
+            if len(second_contours) > 0:
+                largest_contour = get_largest_contour(second_contours)
+                contour_center = get_contour_center(largest_contour)
+                try:
+                    contour_area = cv.contourArea(largest_contour)
+                    return
+                except:
+                    pass
+            second_mask = get_mask(image, hsv[3][0], hsv[3][1])
+            second_contours = find_contours(second_mask)
+            if len(second_contours) > 0:
+                largest_contour = get_largest_contour(second_contours)
+                contour_center = get_contour_center(largest_contour)
+                try:
+                    contour_area = cv.contourArea(largest_contour)
+                    return
+                except:
+                    pass
+            contour_center = None
+            contour_area = 0
 
 target_val = 160
 current_val = 0.0
@@ -213,21 +228,22 @@ def update():
     global angle
     global current_val,accumulated_error,last_error,dt,current_state
     dt=rc.get_delta_time()
-    update_contour()
-    
-    dt=rc.get_delta_time()
-    speed_dv = rc.physics.get_angular_velocity()
-    speed_V1 =speed_dv[2]/dt
-    speed_v = speed_V1-speed_V0
-    speed_a_list.append(speed_v)
-    speed_a_list.pop(0)
-    speed_average_v=average(speed_a_list)
-    speed_V0 = speed_dv[2]/dt
-    speed_set_speed,speed_accumulated_error,speed_last_error = pid_control(speed_PID_P, speed_PID_I, speed_PID_D, speed_speed, speed_average_v, speed_accumulated_error, speed_last_error, dt)
-    speed_set_speeda = clamp(speed_set_speed, -1, 1)
-    speed_average_s.append(speed_set_speeda)
-    speed_average_s.pop(0)
+
     if current_state==states.following_line:
+        update_contour()
+
+        dt=rc.get_delta_time()
+        speed_dv = rc.physics.get_angular_velocity()
+        speed_V1 =speed_dv[2]/dt
+        speed_v = speed_V1-speed_V0
+        speed_a_list.append(speed_v)
+        speed_a_list.pop(0)
+        speed_average_v=average(speed_a_list)
+        speed_V0 = speed_dv[2]/dt
+        speed_set_speed,speed_accumulated_error,speed_last_error = pid_control(speed_PID_P, speed_PID_I, speed_PID_D, speed_speed, speed_average_v, speed_accumulated_error, speed_last_error, dt)
+        speed_set_speeda = clamp(speed_set_speed, -1, 1)
+        speed_average_s.append(speed_set_speeda)
+        speed_average_s.pop(0)
         if contour_center is not None:
 
             anglea,accumulated_error,last_error = pid_control(PID_P, PID_I, PID_D, 160, contour_center[1], accumulated_error, last_error, rc.get_delta_time())
