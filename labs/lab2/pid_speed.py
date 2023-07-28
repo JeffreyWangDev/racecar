@@ -16,8 +16,16 @@ if True:
     sys.path.insert(1, "../../library")
     import racecar_core
     import racecar_utils as rc_utils
-    from utils import * 
-
+    from utils import *
+    import rclpy as ros2
+    from rclpy.qos import (
+        QoSDurabilityPolicy,
+        QoSHistoryPolicy,
+        QoSReliabilityPolicy,
+        QoSProfile,
+    )
+    from sensor_msgs.msg import Image
+    from cv_bridge import CvBridge, CvBridgeError
     import cv2 as cv
     import numpy as np
     from nptyping import NDArray
@@ -38,7 +46,7 @@ current_val = 0.0
 accumulated_error = 0.0
 last_error = 0.0
 dt = 1.0
-speed = 0.2
+speed = 0 
 def start():
     """
     This function is run once every time the start button is pressed
@@ -46,7 +54,6 @@ def start():
     global speed
     global angle
     global red
-    
     red=True
     # Initialize variables
     current_val = 0.0
@@ -65,33 +72,43 @@ def start():
         "    A button = speed up\n"
         "    B button = speed down"
     )
-
+PID_P = 5
+PID_I = 0
+PID_D = 0
 V0 = 0
-V1 = 0
-av = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-
-def get_average(to):
-    return sum(to)/len(to)
-
 def update():
-    global av
-
-    angle,speed = rc.controller.get_joystick(rc.controller.Joystick.LEFT)[0],rc.controller.get_joystick(rc.controller.Joystick.LEFT)[1]
-    global current_val,accumulated_error,last_error,dt,V0,V1
+    global speed
+    if rc.controller.is_down(rc.controller.Button.B):
+        speed-=0.01
+    if rc.controller.was_pressed(rc.controller.Button.A):
+        speed+=0.01
+    angle = rc.controller.get_joystick(rc.controller.Joystick.LEFT)[0]
+    global current_val,accumulated_error,last_error,dt,V0
     dt=rc.get_delta_time()
-    dv = rc.physics.get_angular_velocity()
-    dva = rc.physics.get_linear_acceleration()
-    print(dv,dva)
-    V1 =dv[2]/dt
-    v = V1-V0
-    V0 = dv[2]/dt
-    av.pop(0)
-    av.append(v)
-    # print(av)
-    # print(get_average(av))
-    rc.drive.set_speed_angle(speed, angle)
-        
+    accel = rc.physics.get_linear_acceleration()
+    va = get_v(V0,accel[2],dt)
+    set_speed,accumulated_error,last_error = pid_control(PID_P, PID_I, PID_D, speed, va, accumulated_error, last_error, dt)
+    # angle = remap_range(anglea, -320,320, 1, -1)
+    print(set_speed)
+    set_speed= clamp(set_speed, -1, 1)
+    rc.drive.set_speed_angle(set_speed, angle)
 
+    
+
+
+
+        
+    # Print the current speed and angle when the A button is held down
+    if rc.controller.is_down(rc.controller.Button.A):
+        print("Speed:", speed, "Angle:", angle, "PID: ",PID_P,PID_I,PID_D)
+
+
+def update_slow():
+    """
+    After start() is run, this function is run at a constant rate that is slower
+    than update().  By default, update_slow() is run once per second
+    """
+    print(speed)
 
 
 ########################################################################################
@@ -99,6 +116,6 @@ def update():
 ########################################################################################
 
 if __name__ == "__main__":
-    rc.set_start_update(start, update)
+    rc.set_start_update(start, update, update_slow)
     rc.go()
 

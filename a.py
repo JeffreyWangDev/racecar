@@ -1,53 +1,26 @@
-def pid_control(
-    p_gain,
-    i_gain,
-    d_gain,
-    target_val,
-    current_val,
-    accumulated_error,
-    last_error,
-    dt
-):
+    import cv2
 
-    error = target_val - current_val
-    #change dt with time of car
-    # Update the accumulated error
-    accumulated_error += error * dt
+    dict = {"[[0, 0, 0, 1, 1, 1], [1, 0, 0, 0, 1, 1], [1, 1, 0, 1, 1, 1], [0, 1, 1, 0, 0, 0], [0, 0, 1, 0, 1, 0], [1, 0, 0, 1, 1, 0]]":1,"[[1, 1, 0, 0, 1, 0], [0, 1, 0, 0, 0, 1], [1, 0, 1, 1, 0, 0], [1, 1, 0, 0, 0, 0], [0, 1, 1, 0, 1, 0], [0, 1, 1, 1, 1, 0]]":2,"[[0, 1, 0, 1, 1, 1], [1, 1, 0, 0, 1, 0], [0, 0, 1, 1, 0, 0], [1, 1, 1, 0, 1, 1], [0, 1, 1, 0, 1, 1], [1, 1, 1, 1, 1, 1]]":3,"[[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0], [0, 0, 1, 0, 0, 0], [0, 1, 1, 1, 1, 0]]":4}
 
+    def find_ar(img):
 
-    delta_error = (error - last_error) / dt
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    p_term = p_gain * error
-    i_term = i_gain * accumulated_error
-    d_term = d_gain * delta_error
+        split = []
 
-    return p_term + i_term + d_term, accumulated_error, error
-
-def remap_range(
-    val: float,
-    old_min: float,
-    old_max: float,
-    new_min: float,
-    new_max: float,
-) -> float:
-
-    a = (val - old_min) / (old_max - old_min)
-    return a * (new_max - new_min) + new_min
-
-def test_pid_control():
-    p_gain = 0.6
-    i_gain = 0.1
-    d_gain = -0.1
-    target_val = 960 
-    accumulated_error = 710
-    last_error = 710
-    last_time = 0
-
-    for t,e in  [(0.5, 600), (1.0,  780), (1.5, 912), (2.0, 1100), (2.5, 1500), (3.0, 1300), (3.5, 1102), (4.0, 924), (4.5, 882), (5.0, 956), (5.5, 1025), (6.0, 998), (6.5, 950), (7.0, 956), (7.5, 968)] :
-        print(e)
-        output, accumulated_error, last_error = pid_control(
-            p_gain, i_gain, d_gain, target_val, e, accumulated_error, last_error, t-last_time
-        )
-        last_time = t
-        print(f"At time {t}, control output is {output}")
-test_pid_control()
+        for i in range(1,7):
+            a = []
+            for j in range(1,7):
+                imga = gray[int((img.shape[0]/8)*i):int((img.shape[0]/8)*(i+1)),int((img.shape[1]/8)*j):int((img.shape[1]/8)*(j+1))]
+                if str(list(imga)).count("255") > str(list(imga)).count("0"):
+                    a.append(1)
+                else:
+                    a.append(0)
+            split.append(a)
+        return(dict[str(split)])
+    video = cv2.VideoCapture('video.mp4')
+    go = True
+    while go:
+        go, image = video.read()
+        if image is not None:
+            print(find_ar(image))

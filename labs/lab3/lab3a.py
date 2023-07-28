@@ -5,11 +5,6 @@ Summer 2020
 
 Lab 3A - Depth Camera Safety Stop
 """
-
-########################################################################################
-# Imports
-########################################################################################
-
 import sys
 import cv2 as cv
 import numpy as np
@@ -17,6 +12,15 @@ import numpy as np
 sys.path.insert(0, "../../library")
 import racecar_core
 import racecar_utils as rc_utils
+from nptyping import NDArray
+from typing import Any, Tuple, List, Optional
+from enum import Enum
+from utils import *
+########################################################################################
+# Imports
+########################################################################################
+
+
 
 ########################################################################################
 # Global variables
@@ -43,7 +47,7 @@ def start():
         ">> Lab 3A - Depth Camera Safety Stop\n"
         "\n"
         "Controls:\n"
-        "    Right trigger = accelerate forward\n"
+        "    Right trigger = accelxerate forward\n"
         "    Right bumper = override safety stop\n"
         "    Left trigger = accelerate backward\n"
         "    Left joystick = turn front wheels\n"
@@ -57,20 +61,45 @@ def update():
     After start() is run, this function is run every frame until the back button
     is pressed
     """
+    image = rc.camera.get_color_image()
+    cone_distance = 1000
+    if image is not None:
+    
+        cone_mask = get_mask(image, (120, 80, 120), (160,155,200))
+        cone_contours = find_contours(cone_mask)
+        if len(cone_contours) >0:
+            depth_img = rc.camera.get_depth_image()
+            largest_contour = get_largest_contour(cone_contours)
+            contour_center = get_contour_center(largest_contour)
+            try:
+                cone_area = cv.contourArea(largest_contour)
+                x = remap_range(contour_center[0],0,len(image),len(depth_img),len(depth_img[0]))
+                y=remap_range(contour_center[1],0,len(image[1]),len(depth_img),len(depth_img[1]))
+                print(x,y)
+                cone_distance = depth_img[x][y]
+                print(cone_distance)
+                return
+            except Exception as e:
+                print(e)
+                pass
     # Use the triggers to control the car's speed
     rt = rc.controller.get_trigger(rc.controller.Trigger.RIGHT)
     lt = rc.controller.get_trigger(rc.controller.Trigger.LEFT)
     speed = rt - lt
 
     # Calculate the distance of the object directly in front of the car
-    depth_image = rc.camera.get_depth_image()
-    center_distance = rc_utils.get_depth_image_center_distance(depth_image)
-
-    # TODO (warmup): Prevent forward movement if the car is about to hit something.
-    # Allow the user to override safety stop by holding the right bumper.
-
+    center_distance = cone_distance
     # Use the left joystick to control the angle of the front wheels
     angle = rc.controller.get_joystick(rc.controller.Joystick.LEFT)[0]
+    # Define the desired distance from the cone (in meters)
+    if center_distance > 1000:
+        center_distance = 1000
+    desired_distance = 900  # Approximately 800 cm in meters
+    danger = 700
+    # Calculate the difference between the desired distance and the actual distance
+    speed = remap_range(center_distance,0,1000,-0.7,0.15)
+
+
 
     rc.drive.set_speed_angle(speed, angle)
 
@@ -83,14 +112,7 @@ def update():
         print("Center distance:", center_distance)
 
     # Display the current depth image
-    rc.display.show_depth_image(depth_image)
 
-    # TODO (stretch goal): Prevent forward movement if the car is about to drive off a
-    # ledge.  ONLY TEST THIS IN THE SIMULATION, DO NOT TEST THIS WITH A REAL CAR.
-
-    # TODO (stretch goal): Tune safety stop so that the car is still able to drive up
-    # and down gentle ramps.
-    # Hint: You may need to check distance at multiple points.
 
 
 ########################################################################################

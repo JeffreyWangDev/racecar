@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(0, "../../library")
 import racecar_core
 import racecar_utils as rc_utils
-
+from utils import *
 ########################################################################################
 # Global variables
 ########################################################################################
@@ -71,9 +71,10 @@ def update():
     _, forward_dist = rc_utils.get_lidar_closest_point(scan, FRONT_WINDOW)
     _, back_dist = rc_utils.get_lidar_closest_point(scan, REAR_WINDOW)
 
-    # TODO (warmup): Prevent the car from hitting things in front or behind it.
-    # Allow the user to override safety stop by holding the left or right bumper.
+    if not rc.controller.is_down(rc.controller.Button.LB):
+        speed = remap_range(forward_dist,0,1,0,400)
 
+    speed = clamp(speed,-1,1)
     # Use the left joystick to control the angle of the front wheels
     angle = rc.controller.get_joystick(rc.controller.Joystick.LEFT)[0]
 

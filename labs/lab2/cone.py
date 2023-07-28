@@ -16,8 +16,16 @@ if True:
     sys.path.insert(1, "../../library")
     import racecar_core
     import racecar_utils as rc_utils
-    from utils import * 
-
+    from utils import *
+    import rclpy as ros2
+    from rclpy.qos import (
+        QoSDurabilityPolicy,
+        QoSHistoryPolicy,
+        QoSReliabilityPolicy,
+        QoSProfile,
+    )
+    from sensor_msgs.msg import Image
+    from cv_bridge import CvBridge, CvBridgeError
     import cv2 as cv
     import numpy as np
     from nptyping import NDArray
@@ -32,27 +40,17 @@ if True:
 
 
 rc = racecar_core.create_racecar()
-
-target_val = 0.5
-current_val = 0.0
-accumulated_error = 0.0
-last_error = 0.0
-dt = 1.0
-speed = 0.2
+queue= []
+speed_a_list = [0,0,0,0,0,0,0,0,0,0,0]
+speed_V0  = 0
 def start():
     """
     This function is run once every time the start button is pressed
     """
-    global speed
-    global angle
-    global red
-    
-    red=True
-    # Initialize variables
-    current_val = 0.0
-    accumulated_error = 0.0
-    last_error = 0.0
-    dt = 1.0
+    global queue,speed_a_list,speed_V0
+    queue = []
+    speed_a_list = [0,0,0,0,0,0,0,0,0,0,0]
+    speed_V0  = 0
     # Set initial driving speed and angle
     # Set update_slow to refresh every half second
     rc.set_update_slow_time(0.5)
@@ -65,33 +63,33 @@ def start():
         "    A button = speed up\n"
         "    B button = speed down"
     )
-
-V0 = 0
-V1 = 0
-av = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-
-def get_average(to):
-    return sum(to)/len(to)
-
 def update():
-    global av
-
-    angle,speed = rc.controller.get_joystick(rc.controller.Joystick.LEFT)[0],rc.controller.get_joystick(rc.controller.Joystick.LEFT)[1]
-    global current_val,accumulated_error,last_error,dt,V0,V1
+    global queue,speed_V0,speed_a_list
     dt=rc.get_delta_time()
-    dv = rc.physics.get_angular_velocity()
-    dva = rc.physics.get_linear_acceleration()
-    print(dv,dva)
-    V1 =dv[2]/dt
-    v = V1-V0
-    V0 = dv[2]/dt
-    av.pop(0)
-    av.append(v)
-    # print(av)
-    # print(get_average(av))
-    rc.drive.set_speed_angle(speed, angle)
-        
+    speed_dv = rc.physics.get_angular_velocity()
+    speed_V1 =speed_dv[2]/dt
+    speed_v = speed_V1-speed_V0
+    speed_a_list.append(speed_v)
+    speed_a_list.pop(0)
+    if queue:
+        if queue[0][0]<=0:
+            queue.pop(0)
+            rc.drive.stop()
+        else:
+            queue[0][0]-=get_distance(speed_v,dt)
+            rc.drive.set_speed_angle(0.2,queue[0][1])
+    if rc.controller.was_pressed(rc.controller.Button.A):
+        queue.append([0.5,0])
+    
+def get_distance(v,dt):
+    return v*dt
 
+def update_slow():
+    """
+    After start() is run, this function is run at a constant rate that is slower
+    than update().  By default, update_slow() is run once per second
+    """
+    print(speed)
 
 
 ########################################################################################
@@ -99,6 +97,6 @@ def update():
 ########################################################################################
 
 if __name__ == "__main__":
-    rc.set_start_update(start, update)
+    rc.set_start_update(start, update, update_slow)
     rc.go()
 
