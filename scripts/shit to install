@@ -1,0 +1,25 @@
+sed '/# RACECAR_ALIASES$/d' -i ~/.bashrc
+echo "# Source RACECAR tool # RACECAR_ALIASES
+if [ -f /mnt/c/Users/25wan/GitHub/bwsi/2023/racecar-jeffreywangdev/scripts/.config ]; then # RACECAR_ALIASES
+. /mnt/c/Users/25wan/GitHub/bwsi/2023/racecar-jeffreywangdev/scripts/.config # RACECAR_ALIASES
+fi # RACECAR_ALIASES
+if [ -f /mnt/c/Users/25wan/GitHub/bwsi/2023/racecar-jeffreywangdev/scripts/racecar_tool.sh ]; then # RACECAR_ALIASES
+. /mnt/c/Users/25wan/GitHub/bwsi/2023/racecar-jeffreywangdev/scripts/racecar_tool.sh # RACECAR_ALIASES
+fi # RACECAR_ALIASES" >> ~/.bashrc
+
+
+
+sed '/# RACECAR_ALIASES$/d' -i ~/.zshrc
+echo "# Source RACECAR tool # RACECAR_ALIASES
+if [ -f /mnt/c/Users/25wan/GitHub/bwsi/2023/racecar-jeffreywangdev/scripts/.config ]; then # RACECAR_ALIASES
+. /mnt/c/Users/25wan/GitHub/bwsi/2023/racecar-jeffreywangdev/scripts/.config # RACECAR_ALIASES
+fi # RACECAR_ALIASES
+if [ -f /mnt/c/Users/25wan/GitHub/bwsi/2023/racecar-jeffreywangdev/scripts/racecar_tool.sh ]; then # RACECAR_ALIASES
+. /mnt/c/Users/25wan/GitHub/bwsi/2023/racecar-jeffreywangdev/scripts/racecar_tool.sh # RACECAR_ALIASES
+fi # RACECAR_ALIASES" >> ~/.zshrc
+
+
+
+$SHELL
+
+racecar backup

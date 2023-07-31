@@ -100,7 +100,10 @@ def update_contour(cone = False):
         colors = {
             "purple":[(102, 3, 200),(131, 33, 230)],
             "red":[(170, 50, 170), (180, 255, 255)],
-            "yellow": [(17, 70, 200), (37, 160, 255)]
+            "yellow": [(17, 70, 200), (37, 160, 255)],
+            "special_burple":[(100,102,104),(120,122,135)],
+            "green":[(),()],
+            "blue": [(),()]
 
 
         }
@@ -111,7 +114,7 @@ def update_contour(cone = False):
         ]
 
         image_copy = np.copy(image)
-        cone_mask = get_mask(image_copy, hsv[-1][0], hsv[-1][0])
+        cone_mask = get_mask(image_copy, hsv[2][0], hsv[2][0])
         cone_contours = find_contours(cone_mask)
         if len(cone_contours) >0:
             largest_contour = get_largest_contour(cone_contours)
@@ -142,28 +145,9 @@ def update_contour(cone = False):
                     return
                 except:
                     pass
-            second_mask = get_mask(image, hsv[2][0], hsv[2][1])
-            second_contours = find_contours(second_mask)
-            if len(second_contours) > 0:
-                largest_contour = get_largest_contour(second_contours)
-                contour_center = get_contour_center(largest_contour)
-                try:
-                    contour_area = cv.contourArea(largest_contour)
-                    return
-                except:
-                    pass
-            second_mask = get_mask(image, hsv[3][0], hsv[3][1])
-            second_contours = find_contours(second_mask)
-            if len(second_contours) > 0:
-                largest_contour = get_largest_contour(second_contours)
-                contour_center = get_contour_center(largest_contour)
-                try:
-                    contour_area = cv.contourArea(largest_contour)
-                    return
-                except:
-                    pass
-            contour_center = None
-            contour_area = 0
+            else:
+                contour_center = None
+                contour_area = 0
 
 target_val = 160
 current_val = 0.0

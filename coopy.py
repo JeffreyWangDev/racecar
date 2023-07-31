@@ -1,8 +1,5 @@
-import tensorflow as tf
+import math
+import numpy as np
 
-from tensorflow.keras import datasets, layers, models
-import matplotlib.pyplot as plt
-import pandas as pd
-
-def read_csv(name):
-    df = pd.read_csv(filepath, names=['sentence', 'label'], sep='\t')
+data =  [(0.1, 1.1), (0.2, 2.1), (0.3, 2.9), (0.4, 3.8), (0.5, 4.8), (0.6, 5.9), (0.7, 6.8), (0.8, 7.7), (0.9, 8.9), (1.0, 9.7)]
+speed = 10
