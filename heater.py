@@ -16,4 +16,4 @@ if __name__ == "__main__":
         t.append(thread)
     print('Heating up the CPU...')
     for i in range(0, cpus):
-        t[i].join()x
+        t[i].join()
