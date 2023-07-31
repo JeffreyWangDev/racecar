@@ -52,12 +52,12 @@ racecar() {
       local valid_command=false
       if [ "$2" = "library" ] || [ "$2" = "all" ]; then
         echo "Copying your local copy of the RACECAR library to your car (${RACECAR_IP})..."
-        scp -rp "$RACECAR_ABSOLUTE_PATH"/library racecar@"$RACECAR_IP":"$RACECAR_DESTINATION_PATH"
+        rsync -azP --delete "$RACECAR_ABSOLUTE_PATH"/library racecar@"$RACECAR_IP":"$RACECAR_DESTINATION_PATH"
         valid_command=true
       fi
       if [ "$2" = "labs" ] || [ "$2" = "all" ]; then
         echo "Copying your local copy of the RACECAR labs to your car (${RACECAR_IP})..."
-        scp -rp "$RACECAR_ABSOLUTE_PATH"/labs racecar@"$RACECAR_IP":"$RACECAR_DESTINATION_PATH"
+        rsync -azP --delete "$RACECAR_ABSOLUTE_PATH"/labs racecar@"$RACECAR_IP":"$RACECAR_DESTINATION_PATH"
         valid_command=true
       fi
       
@@ -90,6 +90,8 @@ racecar() {
       echo "  racecar sync library: copies your local RACECAR library folder to your car with scp."
       echo "  racecar sync labs: copies your local RACECAR labs folder to your car with scp."
       echo "  racecar sync all: copies all local RACECAR files to you car with scp."
+      echo "  racecar backup: Creates a backup of you racecar code locally"
+
       echo "  racecar test: prints a message to check if the RACECAR tool was set up successfully. This"
     fi
   fi

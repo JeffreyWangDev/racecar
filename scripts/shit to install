@@ -22,4 +22,3 @@ fi # RACECAR_ALIASES" >> ~/.zshrc
 
 $SHELL
 
-racecar backup
