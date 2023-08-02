@@ -17,7 +17,7 @@ import numpy as np
 sys.path.insert(0, "../../library")
 import racecar_core
 import racecar_utils as rc_utils
-
+import utils
 ########################################################################################
 # Global variables
 ########################################################################################
@@ -30,6 +30,15 @@ start_degrees = 90
 total_degrees = 180
 total_windows = 10
 max_speed = .2
+
+p = 0
+i = 0
+d = 0
+
+a_error = 0
+l_error = 0
+dt=1
+current = 0
 
 ########################################################################################
 # Functions
@@ -57,6 +66,13 @@ def start():
     windows = windows + start_degrees
     windows = windows.reshape(-1, 2)
     print(windows)
+
+    global a_error,l_error,dt,current
+        
+    a_error = 0
+    l_error = 0
+    dt=1
+    current = 0
 
     # Print start message
     print(">> Lab 4B - LIDAR Wall Following")

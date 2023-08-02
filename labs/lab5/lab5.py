@@ -128,11 +128,11 @@ def wall_follower(scan, right):
         if fr_dist > 80:
             angle = 0.45
             if r_dist > 70:
-                angle = -1
-        elif fl_dist > 80:
-            angle = -0.5
-            if l_dist > 70:
                 angle = 1
+        elif fl_dist > 80:
+            angle = -0.45
+            if l_dist > 70:
+                angle = -1
         else:
             angle = 0
     else:
@@ -169,33 +169,11 @@ def update():
     is pressed
     """
     color_image = rc.camera.get_color_image()
-    markers = rc_utils.get_ar_markers(color_image)
-    
-    for marker in markers:
-        
-        if marker.get_id() == 0:
-            curr_state = State.wall_follow_left
-        elif marker.get_id() == 1:
-            curr_state = State.wall_follow_right
-        
-        elif marker.get_id() == 199:
-            print(marker.get_orientation())
-            if marker.get_orientation().value == 1:
-                curr_state = State.wall_follow_left
-            else:
-                curr_state = State.wall_follow_right
-        
-        elif marker.get_id() == 2:
-            marker.detect_colors(color_image, colors)
-            if marker.get_color() == "blue":
-                curr_state = State.line_follow_blue
-            elif marker.get_color() == "red":
-                curr_state = State.line_follow_red
-            else:
-                curr_state = State.line_follow_green
+
     # TODO: Turn left if we see a marker with ID 0 and right for ID 1
     
     scan = rc.lidar.get_samples()
+    curr_state = State.wall_follow_right
     if curr_state == State.wall_follow_left:
         angle = wall_follower(scan, False)
     elif curr_state == State.wall_follow_right:
@@ -204,7 +182,7 @@ def update():
         angle = line_follower("blue")
     elif curr_state == State.line_follow_red:
         angle = line_follower("red")
-        
+    
     print(angle)
     # TODO: If we see a marker with ID 199, turn left if the marker faces left and right
     # if the marker faces right
@@ -214,14 +192,14 @@ def update():
     # we see a green line, follow that instead.
     
     ## debug
-    # rt = rc.controller.get_trigger(rc.controller.Trigger.RIGHT)
+    # rt = rc.controller.get_trigger(rc.controller.Trigger.RIGHT)   
     # lt = rc.controller.get_trigger(rc.controller.Trigger.LEFT)
     # speed = rt-lt
     # angle = rc.controller.get_joystick(rc.controller.Joystick.LEFT)[0]
     
     print(curr_state)
 
-    speed = 0.14
+    speed = 0.18
 
     rc.drive.set_speed_angle(speed, angle)
 

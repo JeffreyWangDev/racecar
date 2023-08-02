@@ -25,7 +25,7 @@ racecar() {
       racecar sync all
     elif [ $# -ge 2 ] && [ "$1" = "sim" ]; then
       python3 "$2" -s "$3" "$4" "$5" "$6"
-    elif [ $# -eq 1 ] && [ "$1" = "backup" ]; then
+    elif [ $# -eq 1 ] && [ "$1" = "backup" ]; then 
       cd "$RACECAR_ABSOLUTE_PATH"
       now="$(date)"
       if [ ! -d "backup" ]
@@ -50,12 +50,12 @@ racecar() {
 
     elif [ $# -eq 2 ] && [ "$1" = "sync" ]; then
       local valid_command=false
-      if [ "$2" = "library" ] || [ "$2" = "all" ]; then
+      if [ "$2" = "library" ]; then
         echo "Copying your local copy of the RACECAR library to your car (${RACECAR_IP})..."
         rsync -azP --delete "$RACECAR_ABSOLUTE_PATH"/library racecar@"$RACECAR_IP":"$RACECAR_DESTINATION_PATH"
         valid_command=true
       fi
-      if [ "$2" = "labs" ] || [ "$2" = "all" ]; then
+      if [ "$2" = "labs" ]; then
         echo "Copying your local copy of the RACECAR labs to your car (${RACECAR_IP})..."
         rsync -azP --delete "$RACECAR_ABSOLUTE_PATH"/labs racecar@"$RACECAR_IP":"$RACECAR_DESTINATION_PATH"
         valid_command=true
@@ -65,8 +65,13 @@ racecar() {
         echo "'${2}' is not a recognized sync command.  Please enter one of the following:"
         echo "racecar sync labs"
         echo "racecar sync library"
-        echo "racecar sync all"
+        echo "racecar sync"
       fi
+    elif [ $# -eq 1 ] && [ "$1" = "sync" ]; then
+      echo "Copying your local copy project to your car (${RACECAR_IP})..."
+      rsync -azP --delete --exclude ".git" --exclude ".venv" --exclude ".vscode" --exclude "*.pyc" "$RACECAR_ABSOLUTE_PATH"/ racecar@"$RACECAR_IP":"$RACECAR_DESTINATION_PATH"
+      
+
     elif [ $# -eq 1 ] && [ "$1" = "test" ]; then
       echo "racecar tool set up successfully!"
       echo "  RACECAR_ABSOLUTE_PATH: ${RACECAR_ABSOLUTE_PATH}"

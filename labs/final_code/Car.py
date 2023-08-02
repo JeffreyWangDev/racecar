@@ -18,6 +18,7 @@ class Car:
         self.pid.speed.speed_speed = 120
         speed = 0.14    
         self.rc.drive.set_speed_angle(speed,angle)
+        
 
     def slow_update(self):
         print("Contour center: ",self.camera.line.contour_center)

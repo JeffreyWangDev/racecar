@@ -47,16 +47,13 @@ class Camera:
         def preprocess_image(image) -> Any:
             image_copy = image[100:len(image)]
             return image_copy
-        def update(self,image) -> int:
-            color_priority = [Colors.Lines.Blue,Colors.Lines.Green,Colors.Lines.Red,Colors.Lines.Yellow]
+        def update(self,image,color_priority = [Colors.Lines.Blue,Colors.Lines.Green,Colors.Lines.Red,Colors.Lines.Yellow]) -> int:
             for i in color_priority:
                 contours = self.find_contours(image,i)
                 if contours is not None:
-                    print(contours)
-                    if len(contours) > 1:
-                        largest = self.find_largest_contour(contours)
-                        if largest is not None:
-                            center = self.find_center_contour(largest)
-                            self.contour_center = center[0]
-                            self.color = i.name
-                            return center[0]
+                    largest = self.find_largest_contour(contours)
+                    if largest is not None:
+                        center = self.find_center_contour(largest)
+                        self.contour_center = center[0]
+                        self.color = i.name
+                        return center[0]
