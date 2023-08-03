@@ -1,9 +1,10 @@
 from imports import *
 
-class Pid:
+class Control:
     def __init__(self) -> None:
         self.speed = self.Speed()
         self.line = self.Line()
+        self.wall = self.Wall()
     class Speed:
         def __init__(self) -> None:
             self.speed_speed = 0.2                        # Set speed
@@ -56,3 +57,45 @@ class Pid:
             angle = remap_range(angle, -320,320, 1, -1)
             angle= clamp(angle, -1, 1)
             return angle
+    class Wall:
+        def __init__(self) -> None:
+            self.__wall_PID_P = 0.1                      # PID P term
+            self.__wall_PID_I = 0.0                      # PID I term
+            self.__wall_PID_D = 0.3                      # PID D term
+            self.__wall_accumulated_error = 0.0          # PID addtive error for I
+            self.__wall_last_error = 0.0                 # Previous PID error
+            self.__wall_set_point = 160
+            self.sharp_front_distance=140
+
+            self.dset=50
+        def update(self,lidar_scan,dt):
+            rightdist= rc_utils.get_lidar_average_distance(lidar_scan,90, 20)
+            frontdist = rc_utils.get_lidar_average_distance(lidar_scan,0, 40)
+            if(frontdist<self.sharp_front_distance):
+                shift_scan=np.roll(lidar_scan,len(lidar_scan)//4)
+                maxangle=np.argmax(shift_scan[0:len(lidar_scan)//2]) #only look at front
+                if (maxangle<(len(lidar_scan)//4)):
+                    
+                    return 1,-1
+                else:
+                    return 1,1
+
+            angle, self.__wall_accumulated_error, self.__wall_last_error = pid_control(self.__wall_PID_P, self.__wall_PID_I, self.__wall_PID_D, self.__wall_set_point, rightdist, self.__wall_accumulated_error, self.__wall_last_error, dt)
+
+            angle/=self.dset
+
+            angle=clamp(angle,-1,1)
+
+            return 0,angle
+    class Cone:
+        class State(IntEnum):
+            Search = 0
+            orangeCurve = 1
+            purpleCurve = 2
+        def __init__(self) -> None:
+
+            self.speed = 0
+            self.angle = 0
+            self.cur_state: self.State = self.State.Search
+        def update(image):
+            pass

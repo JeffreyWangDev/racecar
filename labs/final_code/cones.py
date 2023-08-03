@@ -26,22 +26,18 @@ import utils
 
 rc = racecar_core.create_racecar()
 
-MIN_CONTOUR_AREA = 1200
-
-global queue
-queue=[]
+MIN_CONTOUR_AREA = 650
 
 coneColor = None
 
-ORANGE =((0, 100, 100), (28, 255, 255))
-PURPLE = ((127, 83, 58), (160,255, 255))
+ORANGE = ((0,160,160),(16,255,255))
+PURPLE = ((127, 83, 100), (160, 255, 255))
 
 contour_center = None  # The (pixel row, pixel column) of contour
 contour_area = 0  # The area of contour
-distance = 0 
-last = (0,0)
 
 CROP_FLOOR = ((100,0), (rc.camera.get_height(), rc.camera.get_width()))
+
 
 # Add any global variables here
 ########################################################################################
@@ -56,6 +52,7 @@ cur_state: State = State.Search
 # Functions
 ########################################################################################
 
+
 def start():
     """
     This function is run once every time the start button is pressed
@@ -63,15 +60,17 @@ def start():
     global speed
     global angle
     global cur_state
-    global queue
+    global coneColor,contour_center,contour_area
+    coneColor = None
 
+    contour_center = None  # The (pixel row, pixel column) of contour
+    contour_area = 0  # The area of contour
     # Initialize variables
     speed = 0
     angle = 0
 
     cur_state = State.Search
 
-    queue.clear()
     # Set initial driving speed and angle
     #rc.drive.set_speed_angle(speed, angle)
 
@@ -92,9 +91,10 @@ def update_contour():
     global cur_state
     global coneColor
     global contour_center
-    global distance,last
+    
+
     image = rc.camera.get_color_image()
-    d_image = rc.camera.get_depth_image()
+
     if image is None:
         contour_center = None
         contour_area = 0
@@ -109,6 +109,7 @@ def update_contour():
         # Select the largest orange and purple contour
         orangeContour = rc_utils.get_largest_contour(orangeContours, MIN_CONTOUR_AREA)
         purpleContour = rc_utils.get_largest_contour(purpleContours, MIN_CONTOUR_AREA)
+        
 
         if orangeContour is None and purpleContour is None:
             contour = None
@@ -125,57 +126,55 @@ def update_contour():
             else:
                 contour = purpleContour
                 coneColor = "purple"
-
         if contour is not None:
             # Calculate contour information
             contour_center = rc_utils.get_contour_center(contour)
-            last = (contour_center[0],contour_center[1])
             contour_area = rc_utils.get_contour_area(contour)
-            distance = d_image[contour_center[0]][utils.clamp(contour_center[1],0,159)]
+
+            # Draw contour onto the image
+            rc_utils.draw_contour(image, contour)
+            rc_utils.draw_circle(image, contour_center)
+
         else:
             contour_center = None
             contour_area = 0
-        # # Display the image to the screen
-        # rc.display.show_color_image(image)
-
-def purpleCurve(contour_center):
-    if distance >100:
-        angle = utils.remap_range(last[0],0,rc.camera.get_width(),-1,1)
-        rc.drive.set_speed_angle(0.17,angle)
+        # Display the image to the screen
+        rc.display.show_color_image(image)
+maxa = 0.128
+speeda = 0.15
+def purpleCurve(contour_center, contour_area):
     if contour_center is None:
-        rc.drive.set_speed_angle(0.17, 0.11)
+        rc.drive.set_speed_angle(speeda*0.9, 0.146)
         print("autoPurpturn")
     else:
-        TURN_ANGLE = ((contour_center[1] - 570) / 320)
-        TURN_ANGLE = rc_utils.clamp(TURN_ANGLE, -1, 1)
-        if -0.08 < TURN_ANGLE < 0.08:
+        TURN_ANGLE = ((contour_center[1] - 800) / 320) - 0.08
+        TURN_ANGLE = rc_utils.clamp(TURN_ANGLE, -maxa, maxa)
+        
+        if -maxa < TURN_ANGLE < maxa:
             TURN_ANGLE = 0
-        rc.drive.set_speed_angle(0.17, TURN_ANGLE)
+        rc.drive.set_speed_angle(speeda,TURN_ANGLE)
 
-def orangeCurve(contour_center):
-    if distance >100:
-        angle = utils.remap_range(last[0],0,rc.camera.get_width(),-1,1)
-        rc.drive.set_speed_angle(0.17,angle)
+def orangeCurve(contour_center, contour_area):
     if contour_center is None:
-        rc.drive.set_speed_angle(0.17, -0.11)
+        rc.drive.set_speed_angle(speeda*0.9, -0.146)
         print("autoOrangturn")
     else:
-        TURN_ANGLE = ((contour_center[1] - 70) / 320)
-        TURN_ANGLE = rc_utils.clamp(TURN_ANGLE, -1, 1)
-        if -0.08 < TURN_ANGLE < 0.08:
+        TURN_ANGLE = ((contour_center[1] - 800) / 320) + 0.08
+        TURN_ANGLE = rc_utils.clamp(TURN_ANGLE, -maxa, maxa)
+        TURN_ANGLE = utils.remap_range(TURN_ANGLE,1,-1,-1,1)
+        if -maxa < TURN_ANGLE < maxa:
             TURN_ANGLE = 0
-        rc.drive.set_speed_angle(0.18, TURN_ANGLE)
+        rc.drive.set_speed_angle(speeda,TURN_ANGLE)
 
 def update():
     
     global cur_state
-    global queue
     global coneColor
     global contour_center
     global contour_area
-    global queue
 
     update_contour()
+    update_slow()
     print(cur_state)
 
     if coneColor == "orange":
@@ -184,9 +183,12 @@ def update():
         cur_state = State.purpleCurve
     
     if cur_state == State.orangeCurve:
-        orangeCurve(contour_center)
+        orangeCurve(contour_center, contour_area)
     elif cur_state == State.purpleCurve:
-        purpleCurve(contour_center)
+        purpleCurve(contour_center, contour_area)
+    elif cur_state == State.Search:
+        rc.drive.set_speed_angle(0.148,0)
+    
     
 def update_slow():
     """
@@ -207,6 +209,7 @@ def update_slow():
             s = ["-"] * 32
             s[int(contour_center[1] / 20)] = "|"
             print("".join(s) + " : area = " + str(contour_area))
+
 
 ########################################################################################
 # DO NOT MODIFY: Register start and update and begin execution

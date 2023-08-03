@@ -5,3 +5,4 @@ import racecar_core
 import racecar_utils as rc_utils
 from utils import *
 from Static import *
+from enum import IntEnum

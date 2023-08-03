@@ -38,8 +38,8 @@ class Camera:
                 "yellow": rc_utils.find_contours(image, Colors.Lines.Yellow.lower_value, Colors.Lines.Yellow.upper_value),
             }
         @staticmethod
-        def find_largest_contour(contour) -> Any:            
-            return rc_utils.get_largest_contour(contour)
+        def find_largest_contour(contour,min = None) -> Any:            
+            return rc_utils.get_largest_contour(contour,min)
         @staticmethod
         def find_center_contour(contour) -> tuple:
             return rc_utils.get_contour_center(contour) 
@@ -57,3 +57,46 @@ class Camera:
                         self.contour_center = center[0]
                         self.color = i.name
                         return center[0]
+    class Cone:
+        def __init__(self) -> None:
+            self.__min_countour_area = 650
+            self.coneColor = None
+            self.contour_center = None 
+            self.CROP_FLOOR = ((100,0), (240, 320))
+        def update(self,image):
+            if image is None:
+                self.contour_center = None
+                self.contour_area = 0
+            else:
+
+                image = rc_utils.crop(image, self.CROP_FLOOR[0], self.CROP_FLOOR[1])
+
+                # Find all of the orange and purple contours
+                orangeContours = Camera.Line.find_contours(image,Colors.Cones.Orange)      
+                purpleContours = Camera.Line.find_contours(image,Colors.Cones.Purple)
+
+                # Select the largest orange and purple contour
+                orangeContour = Camera.Line.find_largest_contour(orangeContours,self.__min_countour_area)
+                purpleContour = Camera.Line.find_largest_contour(purpleContours,self.__min_countour_area)
+                if orangeContour is None and purpleContour is None:
+                    contour = None
+                elif orangeContour is None:
+                    contour = purpleContour
+                    self.coneColor = "purple"
+                elif purpleContour is None:
+                    contour = orangeContour
+                    self.coneColor = "orange"
+                else:
+                    if rc_utils.get_contour_area(orangeContour) > rc_utils.get_contour_area(purpleContour):
+                        contour = orangeContour
+                        self.coneColor = "orange"
+                    else:
+                        contour = purpleContour
+                        self.coneColor = "purple"
+                if contour is not None:
+                    # Calculate contour information
+                    self.contour_center = rc_utils.get_contour_center(contour)
+                    self.contour_area = rc_utils.get_contour_area(contour)
+                else:
+                    self.contour_center = None
+                    self.contour_area = 0

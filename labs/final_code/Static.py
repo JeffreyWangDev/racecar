@@ -1,9 +1,13 @@
 class Colors:
     class Cones:
         class Purple:
-            lower_value = (142,86,54)
-            upper_value = (162,156,135)
+            lower_value = (127, 83, 100)
+            upper_value = (160, 255, 255)
             name = "Purple"
+        class Orange:
+            lower_value = (0,160,160)
+            upper_value = (16,255,255)
+            name = "Orange"
     class Lines:
         class Red: 
             lower_value = (135,169,145)
