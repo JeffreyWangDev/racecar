@@ -4,22 +4,24 @@ class Camera:
     def __init__(self) -> None:
         self.aruco = self.Aruco()
         self.line = self.Line()
-        self.image = None
-
+        self.cone = self.Cone()
     class Aruco:
         def __init__(self) -> None:
             self.marker = None
             self.id = -1
             self.center = (0,0)
         def update(self,image) -> int:
-            maker = rc_utils.get_ar_markers(image)
-            if maker is not None:
-                self.marker = maker[0]
-                self.id = self.marker.get_id()
-                corners = self.marker.get_corners()
-                self.center = ((corners[0][0]-corners[-1][0])/2,(corners[0][1]-corners[-1][1])/2)
-                return self.id
-            return None
+            try:
+                maker = rc_utils.get_ar_markers(image)
+                if maker is not None:
+                    self.marker = maker[0]
+                    self.id = self.marker.get_id()
+                    corners = self.marker.get_corners()
+                    self.center = ((corners[0][0]-corners[-1][0])/2,(corners[0][1]-corners[-1][1])/2)
+                    return self.id
+                return None
+            except:
+                pass
     
     class Line:
         def __init__(self) -> None:
@@ -30,7 +32,7 @@ class Camera:
         def find_contours(image,color=None) -> float:
             
             if color!=None:
-                return rc_utils.get_largest_contour(rc_utils.find_contours(image, color.lower_value, color.upper_value))
+                return rc_utils.find_contours(image, color.lower_value, color.upper_value)
             return {
                 "blue": rc_utils.find_contours(image, Colors.Lines.Blue.lower_value, Colors.Lines.Blue.upper_value),
                 "green": rc_utils.find_contours(image, Colors.Lines.Green.lower_value, Colors.Lines.Green.upper_value),
@@ -38,11 +40,11 @@ class Camera:
                 "yellow": rc_utils.find_contours(image, Colors.Lines.Yellow.lower_value, Colors.Lines.Yellow.upper_value),
             }
         @staticmethod
-        def find_largest_contour(contour,min = None) -> Any:            
+        def find_largest_contour(contour,min = 40) -> Any:            
             return rc_utils.get_largest_contour(contour,min)
         @staticmethod
         def find_center_contour(contour) -> tuple:
-            return rc_utils.get_contour_center(contour) 
+            return rc_utils.get_contour_center(contour)
         @staticmethod
         def preprocess_image(image) -> Any:
             image_copy = image[100:len(image)]
@@ -62,6 +64,7 @@ class Camera:
             self.__min_countour_area = 650
             self.coneColor = None
             self.contour_center = None 
+            self.contour_area = 0
             self.CROP_FLOOR = ((100,0), (240, 320))
         def update(self,image):
             if image is None:
@@ -76,6 +79,7 @@ class Camera:
                 purpleContours = Camera.Line.find_contours(image,Colors.Cones.Purple)
 
                 # Select the largest orange and purple contour
+                
                 orangeContour = Camera.Line.find_largest_contour(orangeContours,self.__min_countour_area)
                 purpleContour = Camera.Line.find_largest_contour(purpleContours,self.__min_countour_area)
                 if orangeContour is None and purpleContour is None:

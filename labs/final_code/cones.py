@@ -167,7 +167,6 @@ def orangeCurve(contour_center, contour_area):
         rc.drive.set_speed_angle(speeda,TURN_ANGLE)
 
 def update():
-    
     global cur_state
     global coneColor
     global contour_center
