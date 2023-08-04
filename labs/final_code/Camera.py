@@ -100,3 +100,4 @@ class Camera:
                 else:
                     self.contour_center = None
                     self.contour_area = 0
+            return self.contour_center,self.contour_area,self.coneColor

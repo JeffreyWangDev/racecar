@@ -77,7 +77,7 @@ class Control:
                 if (maxangle<(len(lidar_scan)//4)):
                     
                     return 1,-1
-                else:
+                else:   
                     return 1,1
 
             angle, self.__wall_accumulated_error, self.__wall_last_error = pid_control(self.__wall_PID_P, self.__wall_PID_I, self.__wall_PID_D, self.__wall_set_point, rightdist, self.__wall_accumulated_error, self.__wall_last_error, dt)
@@ -97,5 +97,38 @@ class Control:
             self.speed = 0
             self.angle = 0
             self.cur_state: self.State = self.State.Search
-        def update(image):
-            pass
+        def update(self,coneColor,contour_center,contour_area) -> None:
+            maxa = 0.128
+            speeda = 0.15
+            def purpleCurve(contour_center):
+                if contour_center is None:
+                    return(speeda*0.9, 0.146)
+                else:
+                    TURN_ANGLE = ((contour_center[1] - 800) / 320) - 0.08
+                    TURN_ANGLE = clamp(TURN_ANGLE, -maxa, maxa)
+                    
+                    if -maxa < TURN_ANGLE < maxa:
+                        TURN_ANGLE = 0
+                    return(speeda,TURN_ANGLE)
+
+            def orangeCurve(contour_center):
+                if contour_center is None:
+                    return(speeda*0.9, -0.146)
+                else:
+                    TURN_ANGLE = ((contour_center[1] - 800) / 320) + 0.08
+                    TURN_ANGLE = clamp(TURN_ANGLE, -maxa, maxa)
+                    TURN_ANGLE = remap_range(TURN_ANGLE,1,-1,-1,1)
+                    if -maxa < TURN_ANGLE < maxa:
+                        TURN_ANGLE = 0
+                    return(speeda,TURN_ANGLE)
+            if coneColor == "orange":
+                cur_state = Control.Cone.State.orangeCurve
+            elif coneColor == "purple":
+                cur_state = Control.Cone.State.purpleCurve
+            
+            if cur_state == Control.Cone.State.orangeCurve:
+                orangeCurve(contour_center, contour_area)
+            elif cur_state == Control.Cone.State.purpleCurve:
+                purpleCurve(contour_center, contour_area)
+            elif cur_state == Control.Cone.State.Search:
+                return(0.148,0)
