@@ -128,7 +128,7 @@ MIDYEL = ((15, 40, 40), (33, 255, 255))
 ORA = ((0, 0, 0), (70, 180, 180))
 # PUR=((100, 0, 0), (179, 250, 250))
 PUR = ((120, 140, 0), (150, 255, 255))
-hsvTarget=((89,141,190),(102,255,255))   
+hsvTarget=((75, 150, 150),((95, 255, 255)))   #CURRENTLY DARK GREEN
 prioritylist = [PUR]
 
 def pid(Kp,Ki,Kd,target,current,dT):
