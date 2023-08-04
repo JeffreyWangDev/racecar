@@ -56,10 +56,6 @@ def pid_control(
     return p_term + i_term + d_term, accumulated_error, error
 
 
-class states(Enum):
-    following_line = 1
-    parking_cone = 2
-    stop = 0
 
 
 
