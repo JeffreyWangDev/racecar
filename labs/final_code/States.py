@@ -7,12 +7,12 @@ class States:
         name = "Line"
     class Wall:
         state = 1
-        straight_speed = 0.15
+        straight_speed = 0.2
         turn_speed = 0.155
         name = "wall"
     class Cone:
         state = 2
-        fast_speed = 0.2
+        fast_speed = 0.18
         slow_speed = 0.1
         name = "Cone"
     class Lane:

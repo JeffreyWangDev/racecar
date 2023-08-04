@@ -44,7 +44,7 @@ CROP_FLOOR = ((100,0), (rc.camera.get_height(), rc.camera.get_width()))
 # States
 ########################################################################################
 class State(IntEnum):
-    Search = 0
+    Search = 0 
     orangeCurve = 1
     purpleCurve = 2
 cur_state: State = State.Search

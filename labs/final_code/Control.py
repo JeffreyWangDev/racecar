@@ -1,5 +1,5 @@
 from imports import *
-
+from States import States
 class Control:
     def __init__(self) -> None:
         self.speed = self.Speed()
@@ -81,7 +81,10 @@ class Control:
                 else:   
                     return 1,1
 
-            angle, self.__wall_accumulated_error, self.__wall_last_error = pid_control(self.__wall_PID_P, self.__wall_PID_I, self.__wall_PID_D, self.__wall_set_point, rightdist, self.__wall_accumulated_error, self.__wall_last_error, dt)
+            angle= 0.1 * (rightdist - 50)+0.3*(rightdist-self.__wall_last_error)
+            self.__wall_last_error= rightdist
+                #np.argmin(scan[0:359])/2-90
+            angle/=50
 
             angle/=self.dset
 
@@ -98,13 +101,12 @@ class Control:
             self.speed = 0
             self.angle = 0
             self.cur_state: self.State = self.State.Search
-        maxa = 0.128
-        speeda = 0.15
+
         def purpleCurve(self,contour_center):
-            maxa = 0.128
-            speeda = 0.15
+            maxa = 0.13
+            speeda = States.Cone.fast_speed
             if contour_center is None:
-                self.angle = 0.146
+                self.angle = 0.149
                 self.speed = speeda*0.9
                 return(speeda*0.9, 0.146)
             else:
@@ -118,10 +120,10 @@ class Control:
                 return(speeda,TURN_ANGLE)
 
         def orangeCurve(self,contour_center):
-            maxa = 0.128
-            speeda = 0.15
+            maxa = 0.13
+            speeda = States.Cone.fast_speed
             if contour_center is None:
-                self.angle = -0.146
+                self.angle = -0.149
                 self.speed = speeda*0.9 
                 return(speeda*0.9, -0.146)
             else:
@@ -137,15 +139,15 @@ class Control:
 
 
             if coneColor == "orange":
-                cur_state = Control.Cone.State.orangeCurve
+                self.cur_state = Control.Cone.State.orangeCurve
             elif coneColor == "purple":
-                cur_state = Control.Cone.State.purpleCurve
+                self.cur_state = Control.Cone.State.purpleCurve
             
-            if cur_state == Control.Cone.State.orangeCurve:
-                self.orangeCurve(contour_center, contour_area)
-            elif cur_state == Control.Cone.State.purpleCurve:
-                self.purpleCurve(contour_center, contour_area)
-            elif cur_state == Control.Cone.State.Search:
+            if self.cur_state == Control.Cone.State.orangeCurve:
+                self.orangeCurve(contour_center)
+            elif self.cur_state == Control.Cone.State.purpleCurve:
+                self.purpleCurve(contour_center)
+            elif self.cur_state == Control.Cone.State.Search:
                 self.angle = 0
-                self.speed = 0.148
-                return(0.148,0)
+                self.speed = States.Cone.fast_speed
+                return(self.speed,self.angle)

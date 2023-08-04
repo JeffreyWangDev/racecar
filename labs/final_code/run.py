@@ -15,18 +15,22 @@ control=Control()
 camera=Camera()
 rc = racecar_core.create_racecar()
 state = States.Wall
+id = 1
 angle = 0
 speed = 0
 def start():
     rc.set_update_slow_time(0.5)
 
 def update_all():
+    global id,speed,angle,state
     image = rc.camera.get_color_image()
     dt = rc.get_delta_time()
-    id = camera.aruco.update(image)
-    if id is None:
-        return
-    state = obstacles[id]
+    cheek_id = camera.aruco.update(image)
+    if cheek_id is None:
+        pass
+    else:
+        state = obstacles[id]
+        id = cheek_id
     
     if state == States.Line:
         camera.line.update(image)
@@ -58,9 +62,8 @@ def update():
     rc.drive.set_speed_angle(speed,angle)
 
 def slow_update():
-    print("State: ",state.name)
+    print("State: ",state.name, id)
     print(f"Angle: {angle}    Speed: {speed}")
-    
 
 rc.set_start_update(start, update,slow_update)
 rc.go()
