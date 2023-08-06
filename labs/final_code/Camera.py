@@ -47,21 +47,23 @@ class Camera:
             return rc_utils.get_contour_center(contour)
         @staticmethod
         def preprocess_image(image) -> Any:
-            image_copy = image[100:len(image)]
+            image_copy = image[50:len(image)]
             return image_copy
-        def update(self,image,color_priority = [Colors.Lines.Blue,Colors.Lines.Green,Colors.Lines.Red,Colors.Lines.Yellow]) -> int:
+        def update(self,image,color_priority = [Colors.Lines.Blue]) -> int:
+            image = self.preprocess_image(image)
             for i in color_priority:
                 contours = self.find_contours(image,i)
                 if contours is not None:
+                    print(i.name)
                     largest = self.find_largest_contour(contours)
                     if largest is not None:
                         center = self.find_center_contour(largest)
-                        self.contour_center = center[0]
+                        self.contour_center = center[1]
                         self.color = i.name
                         return center[0]
     class Cone:
         def __init__(self) -> None:
-            self.__min_countour_area = 650
+            self.__min_countour_area = 500
             self.coneColor = None
             self.contour_center = None 
             self.contour_area = 0
@@ -105,3 +107,70 @@ class Camera:
                     self.contour_center = None
                     self.contour_area = 0
             return self.contour_center,self.contour_area,self.coneColor
+    class Lane:
+        
+        def __init__(self) -> None:
+            self.greatestcontour = None
+            self.secondgreatest = None
+        
+        def get_largest_and_second_contour(contours, MIN_CONTOUR_AREA):
+            contours = list(contours)
+            count = 0
+            for contour in contours:
+                if contour is not None:
+                    if cv.contourArea(contour) > MIN_CONTOUR_AREA:
+                        count += 1
+                else:
+                    count += 1
+            if count == 0:
+                return None, None
+            index = 0
+            greatest = 0
+            greatestcontour = None
+            for i in range(len(contours)):
+                if cv.contourArea(contours[i]) > greatest:
+                    greatest = cv.contourArea(contours[i])
+                    index = i
+                    greatestcontour = contours[i]
+            contours.pop(index)
+            
+            greatest = 0
+            secondgreatest = None
+            for i in range(len(contours)):
+                if cv.contourArea(contours[i]) > greatest:
+                    greatest = cv.contourArea(contours[i])
+                    secondgreatest = contours[i]
+            return greatestcontour, secondgreatest
+
+        #This iterates through the priority list until it finds contours that are greater than the min contour area and gets the contour center of the largest and second              
+        def update_contour_two_line(image ):
+            MIN_CONTOUR_AREA = 50
+            CROP_FLOOR = ((180,0), (240, 320))
+            image = rc_utils.crop(image, CROP_FLOOR[0], CROP_FLOOR[1])
+            largestcontour = None
+            secondcontour = None
+            largestcontour_center = (0, 0)
+            secondcontour_center = (0, 0)
+            generalcontour_center = (0, 0) #This is the center if only one contour is seen on the screen
+            hsvTarget=((Colors.Lines.Blue.lower_value,Colors.Lines.Blue.upper_value))
+            prioritylist = [hsvTarget]
+
+            for col in prioritylist:
+                contours = rc_utils.find_contours(image, col[0], col[1])
+                largestcontour, secondcontour = Camera.Lane.get_largest_and_second_contour(contours, MIN_CONTOUR_AREA)
+                if (largestcontour is not None) and (secondcontour is not None):
+                    break
+            if largestcontour is not None and secondcontour is not None:
+                if largestcontour is not None:
+                    largestcontour_center = rc_utils.get_contour_center(largestcontour)
+                if secondcontour is not None:
+                    secondcontour_center = rc_utils.get_contour_center(secondcontour)
+
+            else:
+                if largestcontour is not None:
+                    generalcontour_center = rc_utils.get_contour_center(largestcontour)
+                if secondcontour is not None:
+                    generalcontour_center = rc_utils.get_contour_center(secondcontour)
+
+
+            return largestcontour_center, secondcontour_center, generalcontour_center

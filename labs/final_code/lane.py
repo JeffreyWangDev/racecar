@@ -1,212 +1,190 @@
 
 
-
-"""
-Copyright MIT and Harvey Mudd College
-MIT License
-Summer 2020
-
-Lab 2A - Color Image Line Following
-"""
-
-########################################################################################
-# Imports
-########################################################################################
-
 import sys
 import cv2 as cv
 import numpy as np
-from nptyping import NDArray
-
+                                                                                                                #todo: add target selection, fix pid, add route completion script
 sys.path.insert(1, "../../library")
 import racecar_core
 import racecar_utils as rc_utils
 
 ########################################################################################
 # Global variables
-#############################################
-import cv2 as cv
-import numpy as np
-from nptyping import NDArray
-import cv2 as cv
-import numpy as np
-import matplotlib.pyplot as plt
-import ipywidgets as widgets
-from nptyping import NDArray
-from typing import Any, Tuple, List, Optional
-from enum import Enum
-from utils import *
-
+########################################################################################
 
 rc = racecar_core.create_racecar()
+                                                                   #   Probably edit this to be larger to decrease sensitivity
 
-speed = 0  # The current speed of the car
-angle = 0.0  # The current angle of the car's wheels
-contour_center = None  # The (pixel row, pixel column) of contour
-contour_area = 0  # The area of contour
-image = None
-### speed code
-speed_current_val = 0.0
-speed_accumulated_error = 0.0
-speed_last_error = 0.0
-dt = 1.0
-speed_speed = 0.2
-speed_PID_P = 0.36
-speed_PID_I = 0.18
-speed_PID_D = 0.03
-speed_V0 = 0
-speed_V1 = 0
-speed_set_speed = 0
-speed_dv = 0
-speed_a_list=[0,0,0,0,0,0,0,0]
-speed_average_s = [0,0,0,0,0,0,0,0,0]
-### speed code
-cone_area = 0
-largest_contour = None
-cone_distance = 1000
+# A crop window for the floor directly in front of the car
 
-target_val = 160
-current_val = 0.0
-accumulated_error = 0.0
-last_error = 0.0
-dt = 1.0
 
-current_state = states.following_line
-red=True
-def start():
-    """
-    This function is run once every time the start button is pressed
-    """
-    global speed
-    global angle
-    global red
-    global speed_speed,speed_current_val,speed_accumulated_error,speed_last_error
-    global target_val,angle,target_val,current_val,accumulated_error,last_error
-    red=True
-    # Initialize variables
-    speed = 0.16
-    angle = 0
-    target_val = 160
-    current_val = 0.0
-    accumulated_error = 0.0
-    last_error = 0.0
-    speed_current_val = 0.0
-    speed_accumulated_error = 0.0
-    speed_last_error = 0.0
-    dt = 1.0
-    # Set initial driving speed and angle
-    rc.drive.set_speed_angle(speed, angle)
-    # Set update_slow to refresh every half second
-    rc.set_update_slow_time(0.5)
+HeightCrop = 180 #200 
+CROP_FLOOR = ((HeightCrop,0), (240, 320)) #((HeightCrop,0), (rc.camera.get_height(),rc.camera.get_width()))
+
+
+# Colors, stored as a pair (hsv_min, hsv_max)
+RED=((160, 50, 170), (179, 255, 255))
+YEL=((160, 50, 50), (45, 255, 255))
+GRE=((50,70,70), (70, 255, 255))
+CYA=((76, 50, 50), (105, 255, 255))
+BLU=((90, 50, 50), (120, 255, 255))
+MAG=((136, 50, 50), (165, 255, 255))
+YEL = ((20, 20, 20), (33, 255, 255))
+OUTYEL = ((23, 65, 65), (32, 255, 255))
+MIDYEL = ((15, 40, 40), (33, 255, 255))
+ORA = ((0, 0, 0), (70, 180, 180))
+# PUR=((100, 0, 0), (179, 250, 250))
+PUR = ((120, 140, 0), (150, 255, 255))
+hsvTarget=(((75, 150, 150), (95, 255, 255)))   #CURRENTLY DARK GREEN
+prioritylist = [hsvTarget]
+
+def pid(Kp,Ki,Kd,target,current,dT):
+    global accumulatedError
+    global lastError
+    error=target-current
+    accumulatedError+=error*dT
+    deltaError=(error-lastError)/dT
+    pTerm=Kp*error
+    iTerm=Ki*accumulatedError
+    dTerm=Kd*deltaError
+    lastError=error
+    return pTerm+iTerm+dTerm
+
+#This function returns the largest and second largest contour
+def get_largest_and_second_contour(contours, MIN_CONTOUR_AREA):
+    contours = list(contours)
+    count = 0
+    for contour in contours:
+        if contour is not None:
+            if cv.contourArea(contour) > MIN_CONTOUR_AREA:
+                count += 1
+        else:
+            count += 1
+    if count == 0:
+        return None, None
+    index = 0
+    greatest = 0
+    greatestcontour = None
+    for i in range(len(contours)):
+         if cv.contourArea(contours[i]) > greatest:
+            greatest = cv.contourArea(contours[i])
+            index = i
+            greatestcontour = contours[i]
+    contours.pop(index)
     
-    # Print start message
-    print(
-        ">> Lab 2A - Color Image Line Following\n"
-        "\n"
-        "Controls:\n"
-        "    Right trigger = accelerate forward\n"
-        "    Left trigger = accelerate backward\n"
-        "    A button = print current speed and angle\n"
-        "    B button = print contour center and area"
-    )
-PID_P = 0.225 #0.8*0.6
-PID_I = 0 #0.6
-PID_D = 0.1 #0.17
-def update():
-    global contour_center
+    greatest = 0
+    secondgreatest = None
+    for i in range(len(contours)):
+         if cv.contourArea(contours[i]) > greatest:
+            greatest = cv.contourArea(contours[i])
+            secondgreatest = contours[i]
+    return greatestcontour, secondgreatest
+
+#This iterates through the priority list until it finds contours that are greater than the min contour area and gets the contour center of the largest and second              
+def update_contour_two_line():
+    MIN_CONTOUR_AREA = 50
     image = rc.camera.get_color_image()
-    rImage = rc_utils.crop(image, (180,320), (rc.camera.get_height(), rc.camera.get_width()))
-    lImage = rc_utils.crop(image, (180,0), (rc.camera.get_height(), 320))
-
-    rCont = rc_utils.find_contours(rImage, i[0], i[1])
-    lCont = rc_utils.find_contours(lImage, i[0], i[1])
-
-    rLargCont= rc_utils.get_largest_contour(rCont, 40)
-    lLargCont= rc_utils.get_largest_contour(lCont, 40)
-    if rLargCont is not None and lLargCont is not None:
-        rcontcenter = rc_utils.get_contour_center(rLargCont)
-        lcontcenter = rc_utils.get_contour_center(lLargCont)
-
-
-        contour_center = ((rcontcenter[0] + lcontcenter[0])/2, (rcontcenter[1] + lcontcenter[1] + 320)/2)
-        print("center is at" + str(contour_center[1]))
-
-    global speed_current_val,speed_accumulated_error,speed_last_error,dt,speed_V0,speed_V1,speed_set_speed,speed_speed,speed_PID_P,speed_dv,speed_a_list,speed_average_s
-    global speed
-    global red
-    if rc.controller.was_pressed(rc.controller.Button.B):
-        speed_speed-=0.1
-    if rc.controller.was_pressed(rc.controller.Button.A):
-        speed_speed+=0.1
-    global PID_P,PID_I,PID_D
-    """
-    After start() is run, this function is run every frame until the back button
-    is pressed
-    """
-    global angle
-    global current_val,accumulated_error,last_error,dt,current_state
-    dt=rc.get_delta_time()
-
-    if current_state==states.following_line:
-        dt=rc.get_delta_time()
-        speed_dv = rc.physics.get_angular_velocity()
-        speed_V1 =speed_dv[2]/dt
-        speed_v = speed_V1-speed_V0
-        speed_a_list.append(speed_v)
-        speed_a_list.pop(0)
-        speed_average_v=average(speed_a_list)
-        speed_V0 = speed_dv[2]/dt
-        speed_set_speed,speed_accumulated_error,speed_last_error = pid_control(speed_PID_P, speed_PID_I, speed_PID_D, speed_speed, speed_average_v, speed_accumulated_error, speed_last_error, dt)
-        speed_set_speeda = clamp(speed_set_speed, -1, 1)
-        speed_average_s.append(speed_set_speeda)
-        speed_average_s.pop(0)
-        if contour_center is not None:
-
-            anglea,accumulated_error,last_error = pid_control(PID_P, PID_I, PID_D, 160, contour_center[1], accumulated_error, last_error, rc.get_delta_time())
-            angle = remap_range(anglea, -320,320, 1, -1)
-            angle= clamp(angle, -1, 1)
-        rc.drive.set_speed_angle(average(speed_average_s), angle)
-
-    if current_state == states.parking_cone:
-        print("Cone")
-
-    
+    image = rc_utils.crop(image, CROP_FLOOR[0], CROP_FLOOR[1])
+    largestcontour = None
+    secondcontour = None
+    largestcontour_center = (0, 0)
+    secondcontour_center = (0, 0)
+    generalcontour_center = (0, 0) #This is the center if only one contour is seen on the screen
+    for col in prioritylist:
+        contours = rc_utils.find_contours(image, col[0], col[1])
+        largestcontour, secondcontour = get_largest_and_second_contour(contours, MIN_CONTOUR_AREA)
+        if (largestcontour is not None) and (secondcontour is not None):
+            break
+    if largestcontour is not None and secondcontour is not None:
+        if largestcontour is not None:
+            largestcontour_center = rc_utils.get_contour_center(largestcontour)
+            rc_utils.draw_contour(image,largestcontour)
+            if largestcontour_center is not None:
+                rc_utils.draw_circle(image,largestcontour_center)
+        if secondcontour is not None:
+            secondcontour_center = rc_utils.get_contour_center(secondcontour)
+            rc_utils.draw_contour(image,secondcontour)
+            rc_utils.draw_circle(image,secondcontour_center)
+    else:
+        if largestcontour is not None:
+            generalcontour_center = rc_utils.get_contour_center(largestcontour)
+            rc_utils.draw_contour(image,largestcontour)
+        if secondcontour is not None:
+            generalcontour_center = rc_utils.get_contour_center(secondcontour)
+            rc_utils.draw_contour(image,secondcontour)
 
 
+    rc.display.show_color_image(image)
+    return largestcontour_center, secondcontour_center, generalcontour_center
 
+
+def start():
+    #varaibles that do not need to be copied
+    global mainstate
+    global timestamp
+    global accumulatedError
+    global lastError
+    accumulatedError = 0
+    lastError = 0
+    timestamp = 0
+    mainstate = "two line follow"
+
+def update():
+    #mainvariable
+    global mainstate
+    global timestamp
+    global accumulatedError
+    global lastError
+    if mainstate == "two line follow":
+        timestamp = timestamp + rc.get_delta_time()
+        cameraWidth = 320
+        speed = .18 #.15
+        angle = 0
+        distancethreshold = 50
+        largestcontour_center, secondcontour_center, generalcontour_center = update_contour_two_line()
+        #print(largestcontour_center[1])
+        #print(generalcontour_center[1])
+        if largestcontour_center[1] != 0 and secondcontour_center[1] != 0:
+            smallestx = 0
+            largestx = 0
+            if largestcontour_center[1] > secondcontour_center[1]:
+                largestx = largestcontour_center[1]
+                smallestx = secondcontour_center[1]
+                # generalcontour_center = largestcontour_center
+            else:
+                smallestx = largestcontour_center[1]
+                largestx = secondcontour_center[1]
+                # generalcontour_center = secondcontour_center
+            generalcontour_center_case = (largestx+smallestx)/2
+            if (largestx - smallestx) > distancethreshold:
+                distance = (largestx + smallestx)/2
+                angle = rc_utils.remap_range(distance, 0, cameraWidth, -.25, .25)
+                print(distance)
+                #angle = pid(Kp,Ki,Kd,remap_range(contour_center[1], 0, int(320), -.7, .7), angle, rc.get_delta_time())
+                # angle = rc_utils.remap_range(.001, smallestx, largestx, -1, 1)
+            else:
+                if generalcontour_center_case < (cameraWidth/2)-30:
+                    angle = rc_utils.remap_range(generalcontour_center_case, 0, cameraWidth, .1, .4)
+                if generalcontour_center_case > (cameraWidth/2)+30:
+                    angle = rc_utils.remap_range(generalcontour_center_case, 0, cameraWidth, -.1, -.4)
+        else:
+            if generalcontour_center[1] < cameraWidth/2:
+                angle = rc_utils.remap_range(generalcontour_center[1], 0, cameraWidth, .2, .25)
+            if generalcontour_center[1] > cameraWidth/2:
+                angle = rc_utils.remap_range(generalcontour_center[1], 0, cameraWidth, -.2, -.25)
+
+        angle = rc_utils.clamp(angle, -.25, .25)
         
-    # Print the current speed and angle when the A button is held down
-    if rc.controller.is_down(rc.controller.Button.A):
-        print("Speed:", speed, "Angle:", angle, "PID: ",PID_P,PID_I,PID_D)
+        
+        if timestamp > .2:
+            speed = -.01
+        if timestamp > .22:
+            timestamp = 0
 
+        rc.drive.set_speed_angle(speed, angle)
 
 def update_slow():
-    """
-    After start() is run, this function is run at a constant rate that is slower
-    than update().  By default, update_slow() is run once per second
-    """
-    image_a = draw_contour(image, largest_contour)
-    rc.display.show_color_image(image_a)
-    print(speed_speed,speed_set_speed,average(speed_a_list))
-    # Print a line of ascii text denoting the contour area and x-position
-    if rc.camera.get_color_image() is None:
-        # If no image is found, print all X's and don't display an image
-        print("X" * 10 + " (No image) " + "X" * 10)
-    else:
-        # If an image is found but no contour is found, print all dashes
-        if contour_center is None:
-            print("-" * 32 + " : area = " + str(contour_area))
-
-        # Otherwise, print a line of dashes with a | indicating the contour x-position
-        else:
-            s = ["-"] * 32
-            s[int(contour_center[1] / 20)] = "|"
-            print("".join(s) + " : area = " + str(contour_area))
-
-
-########################################################################################
-# DO NOT MODIFY: Register start and update and begin execution
-########################################################################################
+    pass
 
 if __name__ == "__main__":
     rc.set_start_update(start, update, update_slow)

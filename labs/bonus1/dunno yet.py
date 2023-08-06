@@ -1,96 +1,3 @@
-# """
-# Copyright MIT and Harvey Mudd College
-# MIT License
-# Summer 2020
-
-# Contains helper functions to support common operations.
-# """
-# from nptyping import NDArray
-# from typing import Any, Tuple, List, Optional
-# from enum import Enum
-# import cv2 as cv
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import sys
-# rc = racecar_core.create_racecar()
-
-
-# sys.path.insert(0, "../../library")
-# import racecar_core
-# import racecar_utils as rc_utils
-# from utils import *
-# ########################################################################################
-# # General
-# ########################################################################################
-# def pid_control(
-#     p_gain,
-#     i_gain,
-#     d_gain,
-#     target_val,
-#     current_val,
-#     accumulated_error,
-#     last_error,
-#     dt
-# ):
-
-#     error = target_val - current_val
-#     #change dt with time of car
-#     # Update the accumulated error
-#     accumulated_error += error * dt
-
-
-#     delta_error = (error - last_error) / dt
-
-#     p_term = p_gain * error
-#     i_term = i_gain * accumulated_error
-#     d_term = d_gain * delta_error
-
-#     return p_term + i_term + d_term, accumulated_error, error
-
-
-# class states(Enum):
-#     following_line = 1
-#     parking_cone = 2
-#     stop = 0
-
-
-
-# if cur_state == State.LaneFollow:
-#             rImage = rc_utils.crop(image, (180,320), (rc.camera.get_height(), rc.camera.get_width()))
-#             lImage = rc_utils.crop(image, (180,0), (rc.camera.get_height(), 320))
-
-#             for i in LANECOLORS:
-#                 rCont = rc_utils.find_contours(rImage, i[0], i[1])
-#                 lCont = rc_utils.find_contours(lImage, i[0], i[1])
-
-
-#                 rLargCont= rc_utils.get_largest_contour(rCont, MIN_CONTOUR_AREA)
-#                 lLargCont= rc_utils.get_largest_contour(lCont, MIN_CONTOUR_AREA)
-#                 if rLargCont is not None and lLargCont is not None:
-#                     rcontcenter = rc_utils.get_contour_center(rLargCont)
-#                     lcontcenter = rc_utils.get_contour_center(lLargCont)
-
-
-#                     contour_center = ((rcontcenter[0] + lcontcenter[0])/2, (rcontcenter[1] + lcontcenter[1] + 320)/2)
-#                     print("center is at" + str(contour_center[1]))
-
-#                     break
-#                 else:
-#                     contour_center = None
-
-
-
-
-
-# ########################################################################################
-# # DO NOT MODIFY: Register start and update and begin execution
-# ########################################################################################
-
-# if __name__ == "__main__":
-#     rc.set_start_update(start, update, None)
-#     rc.go()
-
-
 
 
 import sys
@@ -128,8 +35,8 @@ MIDYEL = ((15, 40, 40), (33, 255, 255))
 ORA = ((0, 0, 0), (70, 180, 180))
 # PUR=((100, 0, 0), (179, 250, 250))
 PUR = ((120, 140, 0), (150, 255, 255))
-hsvTarget=((75, 150, 150),((95, 255, 255)))   #CURRENTLY DARK GREEN
-prioritylist = [PUR]
+hsvTarget=(((75, 150, 150), (95, 255, 255)))   #CURRENTLY DARK GREEN
+prioritylist = [hsvTarget]
 
 def pid(Kp,Ki,Kd,target,current,dT):
     global accumulatedError
@@ -215,6 +122,10 @@ def start():
     #varaibles that do not need to be copied
     global mainstate
     global timestamp
+    global accumulatedError
+    global lastError
+    accumulatedError = 0
+    lastError = 0
     timestamp = 0
     mainstate = "two line follow"
 
@@ -222,10 +133,12 @@ def update():
     #mainvariable
     global mainstate
     global timestamp
+    global accumulatedError
+    global lastError
     if mainstate == "two line follow":
         timestamp = timestamp + rc.get_delta_time()
         cameraWidth = rc.camera.get_width()#320
-        speed = .5 #.15
+        speed = .18 #.15
         angle = 0
         distancethreshold = 50
         largestcontour_center, secondcontour_center, generalcontour_center = update_contour_two_line()

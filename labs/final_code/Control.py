@@ -6,6 +6,12 @@ class Control:
         self.line = self.Line()
         self.wall = self.Wall()
         self.cone = self.Cone()
+        self.stop = self.Stop()
+    def reset(self):
+        self.speed.reset()
+        self.line.reset()
+        self.wall.reset()
+        self.cone.reset()
     class Speed:
         def __init__(self) -> None:
             self.speed_speed = 0.2                        # Set speed
@@ -19,6 +25,19 @@ class Control:
             self.__speed_power_list=[0 for i in range(10)]# List of average speed changes
             self.__speed_accumulated_error = 0.0          # PID addtive error for I
             self.__speed_last_error = 0.0                 # Previous PID error
+        def reset(self) -> None:
+            self.speed_speed = 0.2                        # Set speed
+            self.__speed_PID_P = 0.4                      # PID P term
+            self.__speed_PID_I = 0.1                      # PID I term
+            self.__speed_PID_D = 0.08                     # PID D term
+            self.__speed_V0 = 0                           # Previous speed
+            self.__speed_V1 = 0                           # Current speed
+            self.__speed_power = 0                        # Current power level
+            self.__speed_velocity_list=[0,0,0,0,0]        # List of speed changes
+            self.__speed_power_list=[0 for i in range(10)]# List of average speed changes
+            self.__speed_accumulated_error = 0.0          # PID addtive error for I
+            self.__speed_last_error = 0.0                 # Previous PID error
+        
         def update(self,dt:float,angular_v:tuple) -> float: 
             """
             Updates the speed PID control
@@ -47,49 +66,70 @@ class Control:
             return average(self.__speed_power_list)                                                         # Return average power
     class Line:
         def __init__(self) -> None:
-            self.__line_PID_P = 0.4                      # PID P term
-            self.__line_PID_I = 0.1                      # PID I term
-            self.__line_PID_D = 0.08                     # PID D term
+            self.__line_PID_P = 0.8                      # PID P term
+            self.__line_PID_I = 0.04                     # PID I term
+            self.__line_PID_D = 0.09                     # PID D term
+            self.__line_accumulated_error = 0.0          # PID addtive error for I
+            self.__line_last_error = 0.0                 # Previous PID error
+            self.__line_set_point = 160
+        def reset(self) -> None:
+            self.__line_PID_P = 0.8                      # PID P term
+            self.__line_PID_I = 0.00                     # PID I term
+            self.__line_PID_D = 0.00                     # PID D term
             self.__line_accumulated_error = 0.0          # PID addtive error for I
             self.__line_last_error = 0.0                 # Previous PID error
             self.__line_set_point = 160
         def update(self,dt:float,x_pos:int) -> float:
             angle,self.__line_accumulated_error,self.__line_last_error = pid_control(self.__line_PID_P, self.__line_PID_I, self.__line_PID_D, self.__line_set_point, x_pos, self.__line_accumulated_error, self.__line_last_error, dt)
-            angle = remap_range(angle, -320,320, 1, -1)
+            print(self.__line_last_error)
+            angle = remap_range(angle, -320,640, -1, 1)
             angle= clamp(angle, -1, 1)
             return angle
     class Wall:
         def __init__(self) -> None:
             self.__wall_PID_P = 0.1                      # PID P term
             self.__wall_PID_I = 0.0                      # PID I term
-            self.__wall_PID_D = 0.3                      # PID D term
+            self.__wall_PID_D = 0.15                      # PID D term
             self.__wall_accumulated_error = 0.0          # PID addtive error for I
             self.__wall_last_error = 0.0                 # Previous PID error
-            self.__wall_set_point = 160
-            self.sharp_front_distance=140
+            self.__wall_set_point = 70
+            self.sharp_front_distance=90
+            self.dset=100
 
-            self.dset=50
-        def update(self,lidar_scan,dt):
-            rightdist= rc_utils.get_lidar_average_distance(lidar_scan,90, 20)
+        def reset(self) -> None:
+            self.__wall_PID_P = 0.1                      # PID P term
+            self.__wall_PID_I = 0.0                      # PID I term
+            self.__wall_PID_D = 0.15                      # PID D term
+            self.__wall_accumulated_error = 0.0          # PID addtive error for I
+            self.__wall_last_error = 0.0                 # Previous PID error
+            self.__wall_set_point = 70
+            self.sharp_front_distance=90
+            self.dset=100
+
+        def update(self,lidar_scan,a,b):
+            rightdist= rc_utils.get_lidar_average_distance(lidar_scan,a, b)
             frontdist = rc_utils.get_lidar_average_distance(lidar_scan,0, 40)
             if(frontdist<self.sharp_front_distance):
                 shift_scan=np.roll(lidar_scan,len(lidar_scan)//4)
                 maxangle=np.argmax(shift_scan[0:len(lidar_scan)//2]) #only look at front
                 if (maxangle<(len(lidar_scan)//4)):
-                    
-                    return 1,-1
+                    if a ==280:
+                        return 1,1
+                    else:
+                        return 1,-1
                 else:   
-                    return 1,1
+                    if a ==280:
+                            return 1,-1
+                    else:
+                        return 1,1
 
-            angle= 0.1 * (rightdist - 50)+0.3*(rightdist-self.__wall_last_error)
+            angle= self.__wall_PID_P * (rightdist - 50)+self.__wall_PID_D*(rightdist-self.__wall_last_error)
             self.__wall_last_error= rightdist
                 #np.argmin(scan[0:359])/2-90
-            angle/=50
-
             angle/=self.dset
-
             angle=clamp(angle,-1,1)
-
+            if a ==280:
+                angle = angle*-1
             return 0,angle
     class Cone:
         class State(IntEnum):
@@ -97,6 +137,12 @@ class Control:
             orangeCurve = 1
             purpleCurve = 2
         def __init__(self) -> None:
+
+            self.speed = 0
+            self.angle = 0
+            self.cur_state: self.State = self.State.Search
+
+        def reset(self) -> None:
 
             self.speed = 0
             self.angle = 0
@@ -117,10 +163,11 @@ class Control:
                     TURN_ANGLE = 0
                 self.angle = TURN_ANGLE
                 self.speed = speeda
+                
                 return(speeda,TURN_ANGLE)
 
         def orangeCurve(self,contour_center):
-            maxa = 0.13
+            maxa = 0.13 
             speeda = States.Cone.fast_speed
             if contour_center is None:
                 self.angle = -0.149
@@ -151,3 +198,12 @@ class Control:
                 self.angle = 0
                 self.speed = States.Cone.fast_speed
                 return(self.speed,self.angle)
+    class Stop:
+        def __init__(self) -> None:
+            pass
+        def cheek(self,lidar):
+            dist= rc_utils.get_lidar_average_distance(lidar,0,20)
+            if dist<20 and dist>0:
+                return True
+            else:
+                return False

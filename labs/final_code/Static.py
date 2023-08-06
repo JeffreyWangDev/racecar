@@ -14,8 +14,8 @@ class Colors:
             upper_value = (179,255,255)
             name="Red"
         class Blue:
-            lower_value = (64,66,164)
-            upper_value = (124,126,224)
+            lower_value = (89,141,190)
+            upper_value = (102,255,255)
             name="Blue"
         class Green:
             lower_value = (30,49,125)
