@@ -45,8 +45,20 @@ from utils import *
 
 
 rc = racecar_core.create_racecar()
+DRIVE   = True
+# >> Constants
+# The smallest contour we will recognize as a valid contour
+MIN_CONTOUR_AREA = 30
 
-speed = 0  # The current speed of the car
+# A crop window for the floor directly in front of the car
+CROP_FLOOR = ((360, 0), (rc.camera.get_height(), rc.camera.get_width()))
+
+# Colors, stored as a pair (hsv_min, hsv_max)
+BLUE = ((90, 50, 50), (120, 255, 255))  # The HSV range for the color blue
+# TODO (challenge 1): add HSV ranges for other colors
+
+# >> Variables
+speed = 0.0  # The current speed of the car
 angle = 0.0  # The current angle of the car's wheels
 contour_center = None  # The (pixel row, pixel column) of contour
 contour_area = 0  # The area of contour
@@ -71,10 +83,53 @@ cone_area = 0
 largest_contour = None
 cone_distance = 1000
 
-def update_contour(cone = False):
+########################################################################################
+# Functions
+########################################################################################
+def remap_range(
+    val: float,
+    old_min: float,
+    old_max: float,
+    new_min: float,
+    new_max: float,
+) -> float:
+    """
+    Remaps a value from one range to another range.
+
+    Args:
+        val: A number form the old range to be rescaled.
+        old_min: The inclusive 'lower' bound of the old range.
+        old_max: The inclusive 'upper' bound of the old range.
+        new_min: The inclusive 'lower' bound of the new range.
+        new_max: The inclusive 'upper' bound of the new range.
+
+    Note:
+        min need not be less than max; flipping the direction will cause the sign of
+        the mapping to flip.  val does not have to be between old_min and old_max.
+    """
+    # TODO: remap val to the new range
+    a = (val - old_min) / (old_max - old_min)
+    return a * (new_max - new_min) + new_min
+def clamp(value: float, vmin: float, vmax: float) -> float:
+    """
+    Clamps a value between a minimum and maximum value.
+
+    Args:
+        value: The input to clamp.
+        vmin: The minimum allowed value.
+        vmax: The maximum allowed value.
+
+    Returns:
+        The value saturated between vmin and vmax.
+    """
+    # TODO: Make sure that value is between min and max
+    if value < vmin:
+        value = vmin
+    elif value > vmax:
+        value = vmax
+    return value
+def update_contour():
     global DRIVE
-    global image
-    global cone_area
     """
     Finds contours in the current color image and uses them to update contour_center
     and contour_area
@@ -97,13 +152,39 @@ def update_contour(cone = False):
         # (currently we only search for blue)
 
         # Crop the image to the floor directly in front of the car
-        colors = {
-            "purple":[(102, 3, 200),(131, 33, 230)],
-            "red":[(170, 50, 170), (180, 255, 255)],
-            "yellow": [(17, 70, 200), (37, 160, 255)],
-            "special_burple":[(100,102,104),(120,122,135)],
-            "green":[(),()],
-            "blue": [(),()]
+        image = rc_utils.crop(image, CROP_FLOOR[0], CROP_FLOOR[1])
+
+        walll = (110,50,10)
+        wallh = (150,255,255)
+
+        contours_cone = rc_utils.find_contours(image, walll, wallh)
+        largest_contour_cone = rc_utils.get_largest_contour(contours_cone,500)
+        if largest_contour_cone is not None:
+            cone_area = rc_utils.get_contour_area(largest_contour_cone)
+            if cone_area > 600:
+                DRIVE = False        
+
+
+        contours = rc_utils.find_contours(image, BLUE[0], BLUE[1])
+
+        # Select the largest contour
+        contour = rc_utils.get_largest_contour(contours, MIN_CONTOUR_AREA)
+
+        
+        if contour is not None:
+            # Calculate contour information
+            contour_center = rc_utils.get_contour_center(contour)
+            contour_area = rc_utils.get_contour_area(contour)
+
+            # Draw contour onto the image
+            rc_utils.draw_contour(image, contour)
+            rc_utils.draw_circle(image, contour_center)
+
+        else:
+            contour_center = None
+            contour_area = 0
+
+        # Display the image to the screen
 
 
         }
@@ -213,8 +294,8 @@ def update():
     global current_val,accumulated_error,last_error,dt,current_state
     dt=rc.get_delta_time()
 
-    if current_state==states.following_line:
-        update_contour()
+    # Search for contours in the current color image
+    update_contour()
 
         dt=rc.get_delta_time()
         speed_dv = rc.physics.get_angular_velocity()
@@ -230,6 +311,7 @@ def update():
         speed_average_s.pop(0)
         if contour_center is not None:
 
+<<<<<<< HEAD
             anglea,accumulated_error,last_error = pid_control(PID_P, PID_I, PID_D, 160, contour_center[1], accumulated_error, last_error, rc.get_delta_time())
             angle = remap_range(anglea, -320,320, 1, -1)
             angle= clamp(angle, -1, 1)
@@ -237,6 +319,13 @@ def update():
 
     if current_state == states.parking_cone:
         print("Cone")
+=======
+    # Use the triggers to control the car's speed
+
+    speed = 1
+    if DRIVE:
+        rc.drive.set_speed_angle(speed, angle)
+>>>>>>> main
 
     
 
