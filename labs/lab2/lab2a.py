@@ -187,7 +187,7 @@ def update_contour():
         # Display the image to the screen
 
 
-        }
+        
         hsv = [
             colors["red"],
             colors["yellow"],
@@ -297,35 +297,27 @@ def update():
     # Search for contours in the current color image
     update_contour()
 
-        dt=rc.get_delta_time()
-        speed_dv = rc.physics.get_angular_velocity()
-        speed_V1 =speed_dv[2]/dt
-        speed_v = speed_V1-speed_V0
-        speed_a_list.append(speed_v)
-        speed_a_list.pop(0)
-        speed_average_v=average(speed_a_list)
-        speed_V0 = speed_dv[2]/dt
-        speed_set_speed,speed_accumulated_error,speed_last_error = pid_control(speed_PID_P, speed_PID_I, speed_PID_D, speed_speed, speed_average_v, speed_accumulated_error, speed_last_error, dt)
-        speed_set_speeda = clamp(speed_set_speed, -1, 1)
-        speed_average_s.append(speed_set_speeda)
-        speed_average_s.pop(0)
-        if contour_center is not None:
+    dt=rc.get_delta_time()
+    speed_dv = rc.physics.get_angular_velocity()
+    speed_V1 =speed_dv[2]/dt
+    speed_v = speed_V1-speed_V0
+    speed_a_list.append(speed_v)
+    speed_a_list.pop(0)
+    speed_average_v=average(speed_a_list)
+    speed_V0 = speed_dv[2]/dt
+    speed_set_speed,speed_accumulated_error,speed_last_error = pid_control(speed_PID_P, speed_PID_I, speed_PID_D, speed_speed, speed_average_v, speed_accumulated_error, speed_last_error, dt)
+    speed_set_speeda = clamp(speed_set_speed, -1, 1)
+    speed_average_s.append(speed_set_speeda)
+    speed_average_s.pop(0)
+    if contour_center is not None:
 
-<<<<<<< HEAD
-            anglea,accumulated_error,last_error = pid_control(PID_P, PID_I, PID_D, 160, contour_center[1], accumulated_error, last_error, rc.get_delta_time())
-            angle = remap_range(anglea, -320,320, 1, -1)
-            angle= clamp(angle, -1, 1)
-        rc.drive.set_speed_angle(average(speed_average_s), angle)
+        anglea,accumulated_error,last_error = pid_control(PID_P, PID_I, PID_D, 160, contour_center[1], accumulated_error, last_error, rc.get_delta_time())
+        angle = remap_range(anglea, -320,320, 1, -1)
+        angle= clamp(angle, -1, 1)
+    rc.drive.set_speed_angle(average(speed_average_s), angle)
 
     if current_state == states.parking_cone:
         print("Cone")
-=======
-    # Use the triggers to control the car's speed
-
-    speed = 1
-    if DRIVE:
-        rc.drive.set_speed_angle(speed, angle)
->>>>>>> main
 
     
 

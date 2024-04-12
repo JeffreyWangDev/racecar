@@ -20,7 +20,6 @@ import racecar_core
 ########################################################################################
 
 rc = racecar_core.create_racecar()
-
 # Declare any global variables here
 counter = 0
 isDriving = False

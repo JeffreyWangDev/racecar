@@ -10,7 +10,7 @@ import abc
 import numpy as np
 from nptyping import NDArray
 
-
+    
 class Lidar(abc.ABC):
     """
     Returns the scan data captured by the Lidar.

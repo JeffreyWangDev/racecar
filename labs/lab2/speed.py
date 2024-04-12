@@ -47,6 +47,8 @@ speed_set_speed = 0
 speed_dv = 0
 speed_a_list=[0,0,0,0,0]
 speed_average_s = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+
+
 def average(lista):
     average_v = 0
     for i in lista:
@@ -78,6 +80,8 @@ def start():
 
 
 def update():
+    global speed_current_val,speed_accumulated_error,speed_last_error,dt,speed_V0,speed_V1,speed_set_speed,speed_speed,speed_PID_P,speed_dv,speed_a_list,speed_average_s
+
     if rc.controller.was_pressed(rc.controller.Button.B):
         speed_speed-=0.1
     if rc.controller.was_pressed(rc.controller.Button.A):
@@ -85,7 +89,6 @@ def update():
     if rc.controller.was_pressed(rc.controller.Button.Y):
         speed_PID_P+=0.01
     angle = rc.controller.get_joystick(rc.controller.Joystick.LEFT)[0]
-    global speed_current_val,speed_accumulated_error,speed_last_error,dt,speed_V0,speed_V1,speed_set_speed,speed_speed,speed_PID_P,speed_dv,speed_a_list,speed_average_s
     dt=rc.get_delta_time()
     speed_dv = rc.physics.get_angular_velocity()
     speed_V1 =speed_dv[2]/dt
@@ -102,8 +105,7 @@ def update():
         
     # Print the current speed and angle when the A button is held down
     if rc.controller.is_down(rc.controller.Button.X):
-        print("Speed:", speed, "Angle:", angle, "PID: ",speed_PID_P,speed_PID_I,speed_PID_D)
-        print(a_list)
+        print("Speed:", speed_v, "Angle:", angle, "PID: ",speed_PID_P,speed_PID_I,speed_PID_D)
 
 
 def update_slow():
