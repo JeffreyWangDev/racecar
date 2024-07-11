@@ -1,6 +1,6 @@
 import os
 import time
-wifii = ["racecar_1","racecar_2_5G","racecar_3", "racecar_4_5G","racecar_5","racecar_6","racecar_7"]
+wifii = ["racecar_7"]
 count = 1
 version = 3
 for i in wifii:
@@ -13,3 +13,4 @@ for i in wifii:
     count +=1
 # racecar@mit
 
+#"racecar_1","racecar_2_5G","racecar_3", "racecar_4_5G","racecar_5","racecar_6",
